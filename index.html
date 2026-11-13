@@ -1,0 +1,3031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GLM Agent Harness</title>
+<style>  :root {
+    --bg: #0a0a0f;
+    --panel: rgba(28, 28, 32, .72);
+    --panel2: rgba(255, 255, 255, .05);
+    --panel-solid: #1c1c20;
+    --border: rgba(255, 255, 255, .09);
+    --border-strong: rgba(255, 255, 255, .16);
+    --text: #f5f5f7;
+    --muted: #98989d;
+    --label2: rgba(235, 235, 245, .6);
+    --accent: #0a84ff;
+    --accent2: #0066d6;
+    --green: #30d158;
+    --red: #ff453a;
+    --yellow: #ffd60a;
+    --purple: #bf5af2;
+    --orange: #ff9f0a;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --ease: cubic-bezier(.25, .1, .25, 1);
+    --spring: cubic-bezier(.34, 1.56, .64, 1);
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, .28), 0 0 0 .5px rgba(0, 0, 0, .18);
+    --shadow-2: 0 8px 32px rgba(0, 0, 0, .4);
+    --shadow-3: 0 24px 80px rgba(0, 0, 0, .55);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background:
+      radial-gradient(1100px 500px at 85% -10%, rgba(10, 132, 255, .10), transparent 60%),
+      radial-gradient(900px 480px at -10% 110%, rgba(191, 90, 242, .07), transparent 60%),
+      linear-gradient(180deg, #0d0d13, #060609);
+    background-attachment: fixed;
+    color: var(--text);
+    font: 14px/1.55 var(--sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow: hidden;
+    letter-spacing: -.01em;
+  }
+  ::selection { background: rgba(10, 132, 255, .35); }
+  #app { display: flex; height: 100vh; }
+
+  /* ---------- Sidebar: inset grouped list ---------- */
+  #sidebar {
+    width: 340px; min-width: 340px;
+    background: rgba(16, 16, 22, .78);
+    backdrop-filter: blur(28px) saturate(1.6);
+    -webkit-backdrop-filter: blur(28px) saturate(1.6);
+    border-right: .5px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow-y: auto; transition: margin-left .3s var(--ease);
+  }
+  #sidebar.hidden { margin-left: -340px; }
+  .side-section {
+    margin: 10px 12px; padding: 12px 14px;
+    background: var(--panel2);
+    border: .5px solid var(--border);
+    border-radius: 14px;
+  }
+  .side-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--label2); margin: 0 0 10px; font-weight: 600;
+  }
+  label.field { display: block; margin-bottom: 10px; font-size: 12px; color: var(--label2); font-weight: 500; }
+  input[type="text"], input[type="password"], input[type="number"], select, textarea {
+    width: 100%; background: rgba(255, 255, 255, .06); color: var(--text);
+    border: .5px solid var(--border-strong); border-radius: 10px;
+    padding: 7px 10px; font-size: 13px; margin-top: 4px;
+    font-family: var(--sans); letter-spacing: -.01em;
+    transition: border-color .15s var(--ease), box-shadow .15s var(--ease), background .15s var(--ease);
+    appearance: none; -webkit-appearance: none;
+  }
+  select {
+    background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: calc(100% - 16px) 55%, calc(100% - 11px) 55%;
+    background-size: 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 28px;
+  }
+  input:hover, select:hover, textarea:hover { background: rgba(255, 255, 255, .08); }
+  input:focus, select:focus, textarea:focus {
+    outline: none; border-color: var(--accent); background: rgba(255, 255, 255, .08);
+    box-shadow: 0 0 0 3.5px rgba(10, 132, 255, .22);
+  }
+  textarea { resize: vertical; font-family: var(--mono); font-size: 12.5px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .row { display: flex; gap: 6px; align-items: center; }
+  .row > * { flex: 1; }
+
+  /* iOS-style switch */
+  .check {
+    display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--label2);
+    cursor: pointer; user-select: none; margin-bottom: 8px; font-weight: 500;
+  }
+  .check input {
+    appearance: none; -webkit-appearance: none;
+    width: 38px; height: 23px; min-width: 38px; margin: 0; padding: 0;
+    border-radius: 999px; background: rgba(255, 255, 255, .14);
+    position: relative; cursor: pointer; vertical-align: middle;
+    transition: background .2s var(--ease);
+    box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .06);
+  }
+  .check input::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 19px; height: 19px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1.5px 4px rgba(0, 0, 0, .4);
+    transition: transform .22s var(--spring);
+  }
+  .check input:checked { background: var(--green); }
+  .check input:checked::after { transform: translateX(15px); }
+  .check input:focus-visible { outline: none; box-shadow: 0 0 0 3.5px rgba(10, 132, 255, .3); }
+
+  /* ---------- Buttons ---------- */
+  button {
+    background: rgba(255, 255, 255, .08); color: var(--text);
+    border: none; border-radius: 9px; padding: 6px 13px; font-size: 12.5px;
+    cursor: pointer; font-family: var(--sans); font-weight: 500; letter-spacing: -.01em;
+    transition: background .15s var(--ease), transform .12s var(--spring), box-shadow .15s var(--ease), opacity .15s;
+  }
+  button:hover { background: rgba(255, 255, 255, .14); }
+  button:active { transform: scale(.96); }
+  button:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+  button.primary {
+    background: linear-gradient(180deg, #0a84ff, #0066d6); color: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 0 12px rgba(10, 132, 255, .28);
+  }
+  button.primary:hover { background: linear-gradient(180deg, #2492ff, #0a72e0); box-shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 0 18px rgba(10, 132, 255, .4); }
+  button.danger { background: rgba(255, 69, 58, .14); color: var(--red); }
+  button.danger:hover { background: rgba(255, 69, 58, .24); }
+  button.small { padding: 3px 9px; font-size: 11px; border-radius: 7px; }
+
+  /* ---------- File tree ---------- */
+  #fileTree { font-family: var(--mono); font-size: 12px; max-height: 320px; overflow: auto; }
+  #fileTree details { margin-left: 0; }
+  #fileTree details details, #fileTree .file-row { margin-left: 14px; }
+  #fileTree summary {
+    cursor: pointer; padding: 2px 6px; color: var(--accent); list-style: none;
+    border-radius: 6px; transition: background .12s;
+  }
+  #fileTree summary:hover { background: rgba(255, 255, 255, .06); }
+  #fileTree summary::before { content: "▸ "; color: var(--muted); }
+  #fileTree details[open] > summary::before { content: "▾ "; }
+  .file-row {
+    cursor: pointer; padding: 2px 6px; border-radius: 6px; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: background .12s, color .12s;
+  }
+  .file-row:hover { background: rgba(10, 132, 255, .16); color: #6db2ff; }
+  .muted { color: var(--muted); font-size: 12px; }
+
+  /* ---------- Main / topbar ---------- */
+  #main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  #topbar {
+    display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+    border-bottom: .5px solid var(--border);
+    background: rgba(12, 12, 18, .6);
+    backdrop-filter: blur(28px) saturate(1.6);
+    -webkit-backdrop-filter: blur(28px) saturate(1.6);
+    flex-wrap: wrap;
+  }
+  #topbar .spacer { flex: 1; }
+  #providerBadge {
+    font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 999px;
+    border: .5px solid var(--border); background: var(--panel2);
+    letter-spacing: -.01em;
+  }
+  #providerBadge.zai { color: var(--green); border-color: rgba(48, 209, 88, .35); background: rgba(48, 209, 88, .1); }
+  #providerBadge.openrouter { color: var(--purple); border-color: rgba(191, 90, 242, .35); background: rgba(191, 90, 242, .1); }
+  #stepBadge { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  #btnToggleSide { background: transparent; border: none; font-size: 16px; padding: 3px 8px; border-radius: 8px; }
+  #btnToggleSide:hover { background: rgba(255, 255, 255, .1); }
+
+  /* ---------- Chat stream ---------- */
+  #chat { flex: 1; overflow-y: auto; padding: 22px 24px; scroll-behavior: smooth; }
+  .msg { margin-bottom: 18px; max-width: 980px; animation: msgIn .22s var(--ease) both; }
+  @keyframes msgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .msg .who {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em;
+    margin-bottom: 5px; color: var(--label2);
+  }
+  .msg.user { display: flex; flex-direction: column; align-items: flex-end; }
+  .msg.user .who { color: var(--accent); }
+  .msg.assistant .who { color: var(--green); }
+  .bubble {
+    background: var(--panel);
+    backdrop-filter: blur(20px) saturate(1.5);
+    -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    border: .5px solid var(--border);
+    border-radius: 18px 18px 18px 6px;
+    padding: 11px 15px; overflow-wrap: break-word;
+    box-shadow: var(--shadow-1);
+  }
+  .msg.user .bubble {
+    background: linear-gradient(180deg, #0a84ff, #0973e6);
+    border: none; color: #fff; text-align: left;
+    border-radius: 18px 18px 6px 18px;
+    box-shadow: 0 2px 10px rgba(10, 132, 255, .3);
+    max-width: 88%;
+  }
+  .msg.user .bubble code.inline { background: rgba(255, 255, 255, .2); }
+  .msg.user .bubble a { color: #aed4ff; }
+  .bubble p { margin: 6px 0; }
+  .bubble h1, .bubble h2, .bubble h3 { margin: 10px 0 4px; letter-spacing: -.02em; }
+  .bubble ul, .bubble ol { margin: 6px 0; padding-left: 22px; }
+  .bubble code.inline {
+    background: rgba(255, 255, 255, .1); border-radius: 5px; padding: 1.5px 6px;
+    font-family: var(--mono); font-size: 12.5px;
+  }
+  .bubble a { color: #6db2ff; text-decoration: none; }
+  .bubble a:hover { text-decoration: underline; }
+
+  /* ---------- Reasoning trace ---------- */
+  details.trace {
+    border: .5px solid var(--border); border-radius: 12px; margin: 8px 0;
+    background: var(--panel2); overflow: hidden;
+    transition: border-color .15s;
+  }
+  details.trace[open] { border-color: rgba(255, 214, 10, .25); }
+  details.trace > summary {
+    cursor: pointer; padding: 7px 12px; font-size: 12px; font-weight: 600;
+    color: var(--yellow); user-select: none; list-style: none;
+    transition: background .12s;
+  }
+  details.trace > summary:hover { background: rgba(255, 255, 255, .04); }
+  details.trace > summary::before { content: "🧠 "; }
+  details.trace > .trace-body {
+    padding: 9px 14px; border-top: .5px solid var(--border);
+    color: var(--label2); font-family: var(--mono); font-size: 12px;
+    white-space: pre-wrap; max-height: 320px; overflow-y: auto;
+  }
+
+  /* ---------- Tool cards ---------- */
+  .tool-card {
+    border: .5px solid var(--border); border-radius: 12px; margin: 8px 0;
+    background: var(--panel2); overflow: hidden;
+  }
+  .tool-card > summary {
+    cursor: pointer; padding: 7px 12px; font-size: 12px; font-weight: 600;
+    user-select: none; list-style: none; display: flex; align-items: center; gap: 8px;
+    transition: background .12s;
+  }
+  .tool-card > summary:hover { background: rgba(255, 255, 255, .04); }
+  .tool-card > summary::before {
+    content: "▸"; color: var(--muted); font-size: 10px;
+    transition: transform .2s var(--spring);
+  }
+  .tool-card[open] > summary::before { content: "▾"; transform: rotate(0deg); }
+  .tool-card.call > summary { color: #6db2ff; }
+  .tool-card.call > summary::after { content: "🛠"; margin-left: auto; }
+  .tool-card.result > summary { color: var(--green); }
+  .tool-card.result.err > summary { color: var(--red); }
+  .tool-card.result > summary::after { content: "↩"; margin-left: auto; }
+  .tool-card .tool-body {
+    padding: 9px 14px; border-top: .5px solid var(--border);
+    font-family: var(--mono); font-size: 12px; white-space: pre-wrap;
+    max-height: 340px; overflow-y: auto; overflow-wrap: break-word;
+    color: var(--label2);
+  }
+  .tool-card .tool-body code { color: var(--text); }
+
+  /* ---------- Code blocks ---------- */
+  .code-wrap {
+    border: .5px solid var(--border); border-radius: 12px; margin: 10px 0;
+    overflow: hidden; background: #0c0c11;
+    box-shadow: var(--shadow-1);
+  }
+  .code-head {
+    display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+    background: rgba(255, 255, 255, .04);
+    border-bottom: .5px solid var(--border);
+    font-size: 11px; color: var(--muted); font-family: var(--mono);
+  }
+  .code-head .lang {
+    text-transform: uppercase; letter-spacing: .06em;
+    background: rgba(255, 255, 255, .07); padding: 1px 8px; border-radius: 999px;
+  }
+  .code-head .spacer { flex: 1; }
+  .code-wrap pre { margin: 0; padding: 13px 15px; overflow-x: auto; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; }
+
+  /* ---------- Composer: floating pill ---------- */
+  #composer {
+    border-top: .5px solid var(--border);
+    background: rgba(12, 12, 18, .6);
+    backdrop-filter: blur(28px) saturate(1.6);
+    -webkit-backdrop-filter: blur(28px) saturate(1.6);
+    padding: 12px 16px 14px;
+  }
+  #composerInner {
+    display: flex; gap: 8px; align-items: flex-end; max-width: 980px; margin: 0 auto;
+    background: rgba(255, 255, 255, .07);
+    border: .5px solid var(--border-strong);
+    border-radius: 22px; padding: 8px 10px;
+    box-shadow: var(--shadow-2);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  #composerInner:focus-within {
+    border-color: rgba(10, 132, 255, .6);
+    box-shadow: var(--shadow-2), 0 0 0 3.5px rgba(10, 132, 255, .18);
+  }
+  #input {
+    flex: 1; min-height: 40px; max-height: 200px; resize: none;
+    font-family: var(--sans); font-size: 14px; line-height: 1.45;
+    background: transparent; border: none; margin-top: 0; padding: 8px 6px;
+    box-shadow: none; letter-spacing: -.01em;
+  }
+  #input:hover { background: transparent; }
+  #input:focus { background: transparent; border: none; box-shadow: none; }
+  #hint { text-align: center; color: var(--muted); font-size: 11px; margin-top: 7px; }
+
+  /* ---------- Dialogs: sheet style ---------- */
+  dialog {
+    background: rgba(24, 24, 28, .92);
+    backdrop-filter: blur(32px) saturate(1.6);
+    -webkit-backdrop-filter: blur(32px) saturate(1.6);
+    color: var(--text); border: .5px solid var(--border-strong);
+    border-radius: 16px; padding: 0; max-width: 820px; width: 90vw;
+    box-shadow: var(--shadow-3);
+    animation: sheetIn .26s var(--spring) both;
+  }
+  @keyframes sheetIn { from { opacity: 0; transform: scale(.94) translateY(14px); } to { opacity: 1; transform: none; } }
+  dialog::backdrop { background: rgba(0, 0, 0, .5); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  .dlg-head {
+    display: flex; align-items: center; padding: 14px 18px;
+    border-bottom: .5px solid var(--border); font-weight: 600; letter-spacing: -.01em;
+  }
+  .dlg-head .spacer { flex: 1; }
+  .dlg-body { padding: 16px 18px; max-height: 60vh; overflow: auto; }
+  .dlg-foot {
+    display: flex; justify-content: flex-end; gap: 8px; padding: 13px 18px;
+    border-top: .5px solid var(--border);
+  }
+  .diff {
+    font-family: var(--mono); font-size: 12px; background: #0c0c11;
+    border: .5px solid var(--border); border-radius: 10px; padding: 8px 0; overflow-x: auto;
+  }
+  .diff .dl { padding: 0 12px; white-space: pre-wrap; }
+  .diff .add { color: var(--green); background: rgba(48, 209, 88, .13); }
+  .diff .del { color: var(--red); background: rgba(255, 69, 58, .13); }
+  .diff .ctx { color: var(--muted); }
+  #previewFrame { width: 100%; height: 62vh; border: .5px solid var(--border); border-radius: 10px; background: #fff; }
+
+  /* ---------- Toast ---------- */
+  #toast {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    background: rgba(40, 40, 46, .85);
+    backdrop-filter: blur(24px) saturate(1.6);
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    border: .5px solid var(--border-strong); color: var(--text);
+    padding: 9px 18px; border-radius: 999px; font-size: 13px; display: none; z-index: 99;
+    box-shadow: var(--shadow-2); font-weight: 500; letter-spacing: -.01em;
+    animation: toastIn .3s var(--spring) both;
+  }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(12px) scale(.95); } to { opacity: 1; transform: translateX(-50%); } }
+  #toast.err { border-color: rgba(255, 69, 58, .5); color: #ff8077; }
+  .sysnote {
+    text-align: center; color: var(--yellow); font-size: 12px; margin: 12px auto;
+    max-width: 640px; padding: 8px 16px;
+    background: rgba(255, 214, 10, .07); border: .5px solid rgba(255, 214, 10, .2);
+    border-radius: 12px;
+  }
+
+  /* ---------- Terminal: frosted window ---------- */
+  #termPanel {
+    position: fixed; right: 24px; bottom: 24px; width: min(860px, 80vw); height: min(520px, 70vh);
+    background: rgba(10, 10, 16, .88);
+    backdrop-filter: blur(32px) saturate(1.6);
+    -webkit-backdrop-filter: blur(32px) saturate(1.6);
+    border: .5px solid var(--border-strong); border-radius: 16px;
+    box-shadow: var(--shadow-3);
+    display: flex; flex-direction: column; z-index: 50; overflow: hidden;
+    animation: sheetIn .26s var(--spring) both;
+  }
+  #termBar {
+    display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+    background: rgba(255, 255, 255, .04);
+    border-bottom: .5px solid var(--border);
+    cursor: move; user-select: none; flex: 0 0 auto;
+  }
+  #termBar .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .2); }
+  #termBar .dot.red { background: #ff5f57; }
+  #termBar .dot.yellow { background: #febc2e; }
+  #termBar .dot.green { background: #28c840; }
+  #termTitle { color: var(--muted); font-size: 12px; font-family: var(--mono); margin-left: 8px; }
+  #termBar .spacer { flex: 1; }
+  #termClose {
+    background: transparent; border: none; color: var(--muted); cursor: pointer;
+    font-size: 13px; padding: 3px 8px; border-radius: 7px;
+  }
+  #termClose:hover { background: rgba(255, 255, 255, .12); color: var(--text); }
+  #termScroll {
+    flex: 1; overflow-y: auto; padding: 12px 14px;
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.5;
+    color: #f2f2f7; background: transparent;
+  }
+  #termScreen .tl { white-space: pre-wrap; word-break: break-all; min-height: 1.5em; }
+  #termScreen .c30 { color: #7c7c80; } #termScreen .c31 { color: #ff6961; } #termScreen .c32 { color: #5dd97c; } #termScreen .c33 { color: #ffd60a; }
+  #termScreen .c34 { color: #0a84ff; } #termScreen .c35 { color: #bf5af2; } #termScreen .c36 { color: #64d2ff; } #termScreen .c37 { color: #f5f5f7; }
+  #termScreen .c90 { color: #98989d; } #termScreen .c91 { color: #ff8a80; } #termScreen .c92 { color: #8feb9e; } #termScreen .c93 { color: #ffe14d; }
+  #termScreen .c94 { color: #6db2ff; } #termScreen .c95 { color: #d9a0f7; } #termScreen .c96 { color: #9be4ff; } #termScreen .c97 { color: #ffffff; }
+  #termScreen .bold { font-weight: 700; } #termScreen .italic { font-style: italic; } #termScreen .under { text-decoration: underline; } #termScreen .dim { opacity: .55; }
+  #termScreen .cursor { background: #0a84ff; color: #fff; border-radius: 2px; }
+
+  /* ---------- Scrollbars ---------- */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .16); border-radius: 999px; background-clip: padding-box; border: 2px solid transparent; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .28); background-clip: padding-box; border: 2px solid transparent; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-corner { background: transparent; }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="side-section">
+      <p class="side-title">Provider</p>
+      <label class="field">Active provider
+        <select id="provider">
+          <option value="zai">Z.ai — GLM Coding Plan</option>
+          <option value="openrouter">OpenRouter</option>
+        </select>
+      </label>
+
+      <div id="zaiCfg">
+        <label class="field">Coding Plan endpoint
+          <select id="zaiBase">
+            <option value="https://api.z.ai/api/coding/paas/v4">https://api.z.ai (GLM Coding Plan)</option>
+            <option value="https://open.bigmodel.cn/api/coding/paas/v4">https://open.bigmodel.cn (Coding Plan)</option>
+          </select>
+        </label>
+        <label class="field">Z.ai API key
+          <input type="password" id="zaiKey" placeholder="sk-..." autocomplete="off">
+        </label>
+        <label class="field">Model
+          <select id="zaiModelPreset">
+            <option value="glm-5.3">glm-5.3</option>
+            <option value="glm-5.3-flash">glm-5.3-flash</option>
+            <option value="glm-5">glm-5</option>
+            <option value="glm-4.7">glm-4.7</option>
+            <option value="__custom__">Custom…</option>
+          </select>
+        </label>
+        <label class="field" id="zaiCustomWrap" style="display:none">Custom model id
+          <input type="text" id="zaiModelCustom" placeholder="glm-...">
+        </label>
+      </div>
+
+      <div id="orCfg" style="display:none">
+        <label class="field">OpenRouter API key
+          <input type="password" id="orKey" placeholder="sk-or-..." autocomplete="off">
+        </label>
+        <label class="field">Model (default z-ai/glm-5.3-flash)
+          <div class="row">
+            <input type="text" id="orModel" list="orModelList" placeholder="z-ai/glm-5.3-flash">
+            <button id="btnFetchModels" style="flex:0 0 auto" title="Fetch live model list from openrouter.ai">⟳ Fetch</button>
+          </div>
+          <datalist id="orModelList"></datalist>
+        </label>
+      </div>
+    </div>
+
+    <div class="side-section">
+      <p class="side-title">Steering &amp; Sampling</p>
+      <div class="grid2">
+        <label class="field">Temperature
+          <input type="number" id="temperature" min="0" max="2" step="0.05" value="0.7">
+        </label>
+        <label class="field">Top P
+          <input type="number" id="topP" min="0" max="1" step="0.01" value="1">
+        </label>
+        <label class="field">Top K (blank = omit)
+          <input type="number" id="topK" min="1" step="1" placeholder="auto">
+        </label>
+        <label class="field">Max tokens (blank = auto)
+          <input type="number" id="maxTokens" min="1" step="1" placeholder="auto">
+        </label>
+        <label class="field">Frequency penalty
+          <input type="number" id="freqPenalty" min="-2" max="2" step="0.1" value="0">
+        </label>
+        <label class="field">Presence penalty
+          <input type="number" id="presPenalty" min="-2" max="2" step="0.1" value="0">
+        </label>
+        <label class="field">Seed (blank = random)
+          <input type="number" id="seed" step="1" placeholder="random">
+        </label>
+        <label class="field">Stop sequences (comma-sep)
+          <input type="text" id="stopSeqs" placeholder="e.g. END,OBSERVE">
+        </label>
+      </div>
+
+      <label class="field">Reasoning depth
+        <select id="reasoningMode">
+          <option value="default">Provider default</option>
+          <option value="think_on">Thinking ON (Z.ai thinking / OR high effort)</option>
+          <option value="think_off">Thinking OFF (Z.ai / OR omit)</option>
+          <option value="effort_low">OR reasoning effort: low</option>
+          <option value="effort_medium">OR reasoning effort: medium</option>
+          <option value="effort_high">OR reasoning effort: high</option>
+        </select>
+      </label>
+
+      <label class="field">Tool choice
+        <select id="toolChoice">
+          <option value="auto">auto — model decides</option>
+          <option value="none">none — no tools this run</option>
+          <option value="required">required — must call a tool</option>
+        </select>
+      </label>
+
+      <label class="check"><input type="checkbox" id="parallelTools" checked> Allow parallel tool calls</label>
+      <label class="check"><input type="checkbox" id="autoRetry" checked> Auto-retry failed API calls (2 retries, backoff)</label>
+      <label class="check"><input type="checkbox" id="autoContinue" checked> Auto-continue when Max Steps is hit (injects a nudge)</label>
+      <label class="check"><input type="checkbox" id="reflectChk"> Reflection pass — before finishing, the agent reviews and fixes its own work</label>
+      <label class="check"><input type="checkbox" id="confirmWrites"> Confirm before writing/deleting files</label>
+
+      <label class="field">Max agent steps
+        <input type="number" id="maxSteps" min="1" max="100" step="1" value="10">
+      </label>
+      <label class="field">Context budget (approx tokens — oldest tool results are trimmed to fit)
+        <input type="number" id="contextBudget" min="2000" step="1000" value="60000">
+      </label>
+      <label class="field">System prompt
+        <textarea id="systemPrompt" rows="5"></textarea>
+      </label>
+      <label class="field">Steering nudge — injected as a system message before every agent step
+        <textarea id="steerNudge" rows="2" placeholder="e.g. Prefer editing files over printing code. Run tests via run_javascript before claiming done."></textarea>
+      </label>
+      <label class="field">Advanced — raw JSON merged into every request body
+        <textarea id="rawOverride" rows="3" placeholder='{"top_logprobs": 0, "user": "me"}'></textarea>
+      </label>
+    </div>
+
+    <div class="side-section">
+      <p class="side-title">Sessions</p>
+      <div class="row" style="margin-bottom:8px">
+        <button id="btnNewSession">＋ New Chat</button>
+      </div>
+      <div id="sessionList"></div>
+    </div>
+
+    <div class="side-section">
+      <p class="side-title">Workspace</p>
+      <div class="row" style="margin-bottom:8px">
+        <button id="btnMount">📁 Mount Folder</button>
+        <button id="btnUnmount" style="display:none">✕ Unmount</button>
+      </div>
+      <div id="mountInfo" class="muted">No folder mounted. Mount a folder to enable list_files / read_file / edit_file / write_file / delete_file / repo_map tools.</div>
+      <div id="fileTree" style="margin-top:8px"></div>
+    </div>
+  </aside>
+
+  <main id="main">
+    <div id="topbar">
+      <button id="btnToggleSide" title="Toggle sidebar">☰</button>
+      <span id="providerBadge" class="zai">Z.ai Coding Plan</span>
+      <select id="modeSel" style="width:auto" title="Code mode: full tool access. Ask mode: read-only chat, no tools.">
+        <option value="code">⚙ Code</option>
+        <option value="ask">💬 Ask</option>
+      </select>
+      <span id="stepBadge"></span>
+      <span class="spacer"></span>
+      <button id="btnStop" class="danger" style="display:none">■ Stop Agent</button>
+      <select id="checkpointSel" style="display:none;width:auto;max-width:200px" title="File checkpoints (snapshot before each AI write)"></select>
+      <button id="btnRestore" style="display:none" title="Restore the selected checkpoint">↺ Restore</button>
+      <button id="btnTerm">⌨ Terminal</button>
+      <button id="btnExport">⬇ Export JSON</button>
+      <button id="btnClear">🗑 Clear Chat</button>
+    </div>
+    <div id="chat"></div>
+    <div id="composer">
+      <div id="composerInner">
+        <textarea id="input" placeholder="Ask the agent to code, search, or edit your mounted folder… (Enter to send, Shift+Enter for newline)"></textarea>
+        <button id="btnSend" class="primary">Send ▸</button>
+      </div>
+      <div id="hint">Agent loop: streams SSE · executes tools locally · loops until done or Max Steps · slash commands: /help /map /undo /mode /model /export /clear</div>
+    </div>
+  </main>
+</div>
+
+<dialog id="previewDialog">
+  <div class="dlg-head"><span id="previewTitle">Live HTML Preview</span><span class="spacer"></span><button class="small" onclick="document.getElementById('previewDialog').close()">✕ Close</button></div>
+  <div class="dlg-body"><iframe id="previewFrame" sandbox="allow-scripts"></iframe></div>
+</dialog>
+
+<dialog id="confirmDialog">
+  <div class="dlg-head"><span id="confirmTitle">Confirm</span></div>
+  <div class="dlg-body" id="confirmBody"></div>
+  <div class="dlg-foot">
+    <button id="confirmNo">Cancel</button>
+    <button id="confirmYes" class="primary">Confirm</button>
+  </div>
+</dialog>
+
+<dialog id="fileViewDialog">
+  <div class="dlg-head"><span id="fileViewTitle">File</span><span class="spacer"></span><button class="small" onclick="document.getElementById('fileViewDialog').close()">✕ Close</button></div>
+  <div class="dlg-body"><pre id="fileViewPre" style="margin:0;font-family:var(--mono);font-size:12px;white-space:pre-wrap"></pre></div>
+</dialog>
+
+<div id="termPanel" style="display:none">
+  <div id="termBar">
+    <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+    <span id="termTitle">ghostty — glm-agent</span>
+    <span class="spacer"></span>
+    <button id="termClose" title="Close terminal (Ctrl+`)">✕</button>
+  </div>
+  <div id="termScroll"><div id="termScreen"></div></div>
+</div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+
+/* ============================== State & persistence ============================== */
+
+const LS_CFG = "glmagent.config.v1";
+const LS_HIST = "glmagent.history.v1";
+const IGNORE_DIRS = new Set([".git", "node_modules", "dist", "build"]);
+
+const DEFAULT_CFG = {
+  provider: "zai",
+  zaiBase: "https://api.z.ai/api/coding/paas/v4",
+  zaiKey: "",
+  orKey: "",
+  zaiModelPreset: "glm-5.3-flash",
+  zaiModelCustom: "",
+  orModel: "z-ai/glm-5.3-flash",
+  temperature: 0.7,
+  topP: 1,
+  topK: "",
+  maxTokens: "",
+  freqPenalty: 0,
+  presPenalty: 0,
+  seed: "",
+  stopSeqs: "",
+  reasoningMode: "default",
+  toolChoice: "auto",
+  parallelTools: true,
+  autoRetry: true,
+  autoContinue: true,
+  maxSteps: 10,
+  systemPrompt: "You are an autonomous AI coding agent running in the user's browser. Work step by step. Use the provided tools (filesystem, run_javascript, web_search) whenever they help. When you write code the user asked for, emit it in fenced code blocks with a language tag. Keep going until the task is fully complete.",
+  steerNudge: "",
+  rawOverride: "",
+  mode: "code",
+  reflect: false,
+  contextBudget: 60000,
+  confirmWrites: true
+};
+
+let cfg = loadCfg();
+let messages = loadHistory();
+let rootHandle = null;
+let running = false;
+let abortCtl = null;
+let modelOverride = null;
+
+function loadCfg() {
+  try {
+    const raw = localStorage.getItem(LS_CFG);
+    return raw ? Object.assign({}, DEFAULT_CFG, JSON.parse(raw)) : Object.assign({}, DEFAULT_CFG);
+  } catch (e) { return Object.assign({}, DEFAULT_CFG); }
+}
+function saveCfg() {
+  try { localStorage.setItem(LS_CFG, JSON.stringify(cfg)); } catch (e) {}
+}
+function activeSessionId() {
+  try {
+    const raw = localStorage.getItem("glmagent.sessions.v1");
+    if (raw) { const parsed = JSON.parse(raw); if (parsed && parsed.activeId) return parsed.activeId; }
+  } catch (e) {}
+  return null;
+}
+function sessionKey(id) { return "glmagent.session." + id; }
+function loadHistory() {
+  const sid = activeSessionId();
+  if (sid) {
+    try { return JSON.parse(localStorage.getItem(sessionKey(sid)) || "[]"); } catch (e) {}
+  }
+  try { return JSON.parse(localStorage.getItem(LS_HIST) || "[]"); } catch (e) { return []; }
+}
+function saveHistory() {
+  const sid = activeSessionId();
+  try {
+    if (sid) localStorage.setItem(sessionKey(sid), JSON.stringify(messages));
+    else localStorage.setItem(LS_HIST, JSON.stringify(messages));
+  } catch (e) { toast("History too large for localStorage", true); }
+}
+
+/* ============================== DOM refs ============================== */
+
+const $ = (id) => document.getElementById(id);
+const chatEl = $("chat"), inputEl = $("input");
+const els = {
+  provider: $("provider"), zaiBase: $("zaiBase"), zaiKey: $("zaiKey"), orKey: $("orKey"),
+  zaiModelPreset: $("zaiModelPreset"), zaiModelCustom: $("zaiModelCustom"), zaiCustomWrap: $("zaiCustomWrap"),
+  orModel: $("orModel"), orModelList: $("orModelList"),
+  temperature: $("temperature"), topP: $("topP"), topK: $("topK"), maxTokens: $("maxTokens"),
+  freqPenalty: $("freqPenalty"), presPenalty: $("presPenalty"), seed: $("seed"), stopSeqs: $("stopSeqs"),
+  reasoningMode: $("reasoningMode"), toolChoice: $("toolChoice"),
+  parallelTools: $("parallelTools"), autoRetry: $("autoRetry"), autoContinue: $("autoContinue"),
+  maxSteps: $("maxSteps"), systemPrompt: $("systemPrompt"), steerNudge: $("steerNudge"),
+  rawOverride: $("rawOverride"), confirmWrites: $("confirmWrites"),
+  zaiCfg: $("zaiCfg"), orCfg: $("orCfg"),
+  providerBadge: $("providerBadge"), stepBadge: $("stepBadge"),
+  btnSend: $("btnSend"), btnStop: $("btnStop"), btnExport: $("btnExport"), btnClear: $("btnClear"),
+  btnMount: $("btnMount"), btnUnmount: $("btnUnmount"), mountInfo: $("mountInfo"), fileTree: $("fileTree"),
+  previewDialog: $("previewDialog"), previewFrame: $("previewFrame"), previewTitle: $("previewTitle"),
+  confirmDialog: $("confirmDialog"), confirmTitle: $("confirmTitle"), confirmBody: $("confirmBody"),
+  confirmYes: $("confirmYes"), confirmNo: $("confirmNo"),
+  fileViewDialog: $("fileViewDialog"), fileViewTitle: $("fileViewTitle"), fileViewPre: $("fileViewPre"),
+  toast: $("toast"), sidebar: $("sidebar"), btnToggleSide: $("btnToggleSide"),
+  checkpointSel: $("checkpointSel"), btnRestore: $("btnRestore"),
+  modeSel: $("modeSel"), reflectChk: $("reflectChk"),
+  sessionList: $("sessionList"), btnNewSession: $("btnNewSession"), contextBudget: $("contextBudget")
+};
+
+/* ============================== Config binding ============================== */
+
+function bindCfg() {
+  els.provider.value = cfg.provider;
+  els.zaiBase.value = cfg.zaiBase;
+  els.zaiKey.value = cfg.zaiKey;
+  els.orKey.value = cfg.orKey;
+  els.zaiModelPreset.value = cfg.zaiModelPreset;
+  els.zaiModelCustom.value = cfg.zaiModelCustom;
+  els.orModel.value = cfg.orModel;
+  els.temperature.value = cfg.temperature;
+  els.topP.value = cfg.topP;
+  els.topK.value = cfg.topK;
+  els.maxTokens.value = cfg.maxTokens;
+  els.freqPenalty.value = cfg.freqPenalty;
+  els.presPenalty.value = cfg.presPenalty;
+  els.seed.value = cfg.seed;
+  els.stopSeqs.value = cfg.stopSeqs;
+  els.reasoningMode.value = cfg.reasoningMode;
+  els.toolChoice.value = cfg.toolChoice;
+  els.parallelTools.checked = cfg.parallelTools;
+  els.autoRetry.checked = cfg.autoRetry;
+  els.autoContinue.checked = cfg.autoContinue;
+  els.maxSteps.value = cfg.maxSteps;
+  els.systemPrompt.value = cfg.systemPrompt;
+  els.steerNudge.value = cfg.steerNudge;
+  els.rawOverride.value = cfg.rawOverride;
+  els.confirmWrites.checked = cfg.confirmWrites;
+  els.modeSel.value = cfg.mode;
+  els.reflectChk.checked = cfg.reflect;
+  els.contextBudget.value = cfg.contextBudget;
+  syncProviderUi();
+}
+function syncProviderUi() {
+  const isOr = cfg.provider === "openrouter";
+  els.zaiCfg.style.display = isOr ? "none" : "";
+  els.orCfg.style.display = isOr ? "" : "none";
+  els.zaiCustomWrap.style.display = cfg.zaiModelPreset === "__custom__" ? "" : "none";
+  els.providerBadge.textContent = isOr ? "OpenRouter" : "Z.ai Coding Plan";
+  els.providerBadge.className = isOr ? "openrouter" : "zai";
+}
+function currentModel() {
+  if (modelOverride) return modelOverride;
+  if (cfg.provider === "openrouter") return (els.orModel.value || "z-ai/glm-5.3-flash").trim();
+  if (cfg.zaiModelPreset === "__custom__") return (els.zaiModelCustom.value || "glm-5.3-flash").trim();
+  return cfg.zaiModelPreset;
+}
+function currentKey() {
+  return cfg.provider === "openrouter" ? els.orKey.value.trim() : els.zaiKey.value.trim();
+}
+
+function readCfgFromUi() {
+  cfg.provider = els.provider.value;
+  cfg.zaiBase = els.zaiBase.value;
+  cfg.zaiKey = els.zaiKey.value;
+  cfg.orKey = els.orKey.value;
+  cfg.zaiModelPreset = els.zaiModelPreset.value;
+  cfg.zaiModelCustom = els.zaiModelCustom.value;
+  cfg.orModel = els.orModel.value;
+  cfg.temperature = parseFloat(els.temperature.value); if (isNaN(cfg.temperature)) cfg.temperature = 0.7;
+  cfg.topP = parseFloat(els.topP.value); if (isNaN(cfg.topP)) cfg.topP = 1;
+  cfg.topK = els.topK.value.trim();
+  cfg.maxTokens = els.maxTokens.value.trim();
+  cfg.freqPenalty = parseFloat(els.freqPenalty.value); if (isNaN(cfg.freqPenalty)) cfg.freqPenalty = 0;
+  cfg.presPenalty = parseFloat(els.presPenalty.value); if (isNaN(cfg.presPenalty)) cfg.presPenalty = 0;
+  cfg.seed = els.seed.value.trim();
+  cfg.stopSeqs = els.stopSeqs.value.trim();
+  cfg.reasoningMode = els.reasoningMode.value;
+  cfg.toolChoice = els.toolChoice.value;
+  cfg.parallelTools = els.parallelTools.checked;
+  cfg.autoRetry = els.autoRetry.checked;
+  cfg.autoContinue = els.autoContinue.checked;
+  cfg.maxSteps = Math.max(1, parseInt(els.maxSteps.value, 10) || 10);
+  cfg.systemPrompt = els.systemPrompt.value;
+  cfg.steerNudge = els.steerNudge.value;
+  cfg.rawOverride = els.rawOverride.value;
+  cfg.confirmWrites = els.confirmWrites.checked;
+  cfg.mode = els.modeSel.value;
+  cfg.reflect = els.reflectChk.checked;
+  cfg.contextBudget = Math.max(2000, parseInt(els.contextBudget.value, 10) || 60000);
+  syncProviderUi();
+  saveCfg();
+}
+
+const cfgInputs = [els.provider, els.zaiBase, els.zaiKey, els.orKey, els.zaiModelPreset, els.zaiModelCustom, els.orModel, els.temperature, els.topP, els.topK, els.maxTokens, els.freqPenalty, els.presPenalty, els.seed, els.stopSeqs, els.reasoningMode, els.toolChoice, els.parallelTools, els.autoRetry, els.autoContinue, els.maxSteps, els.systemPrompt, els.steerNudge, els.rawOverride, els.confirmWrites, els.modeSel, els.reflectChk, els.contextBudget];
+cfgInputs.forEach(el => {
+  const ev = (el.tagName === "SELECT" || el.type === "checkbox") ? "change" : "input";
+  el.addEventListener(ev, readCfgFromUi);
+});
+
+function abortedNow() { return !!(abortCtl && abortCtl.signal.aborted); }
+
+/* ============================== Utilities ============================== */
+
+let toastTimer = null;
+function toast(text, isErr) {
+  els.toast.textContent = text;
+  els.toast.className = isErr ? "err" : "";
+  els.toast.style.display = "block";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { els.toast.style.display = "none"; }, 3200);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function scrollBottom() { chatEl.scrollTop = chatEl.scrollHeight; }
+
+const codeStore = new Map();
+let codeSeq = 0;
+
+/* ---------- Markdown rendering ---------- */
+
+function renderInline(text) {
+  let s = escapeHtml(text);
+  s = s.replace(/`([^`\n]+)`/g, '<code class="inline">$1</code>');
+  s = s.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>");
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  return s;
+}
+
+function renderMarkdown(text) {
+  const out = [];
+  const fence = /```([\w+#.-]*)[ \t]*\n?([\s\S]*?)(?:```|$)/g;
+  let last = 0, m;
+  while ((m = fence.exec(text)) !== null) {
+    if (m.index > last) out.push(renderBlock(text.slice(last, m.index)));
+    out.push(renderCodeBlock(m[2].replace(/\n$/, ""), m[1] || "text"));
+    last = fence.lastIndex;
+  }
+  if (last < text.length) out.push(renderBlock(text.slice(last)));
+  return out.join("");
+}
+
+function renderBlock(block) {
+  const lines = block.split("\n");
+  const html = [];
+  let inList = false, listTag = "ul";
+  const closeList = () => { if (inList) { html.push("</" + listTag + ">"); inList = false; } };
+  for (const raw of lines) {
+    const line = raw.replace(/\s+$/, "");
+    const h = /^(#{1,3})\s+(.*)$/.exec(line);
+    const ul = /^\s*[-*+]\s+(.*)$/.exec(line);
+    const ol = /^\s*\d+[.)]\s+(.*)$/.exec(line);
+    if (h) { closeList(); html.push("<h" + (h[1].length + 1) + ">" + renderInline(h[2]) + "</h" + (h[1].length + 1) + ">"); }
+    else if (ul) { if (!inList || listTag !== "ul") { closeList(); html.push("<ul>"); inList = true; listTag = "ul"; } html.push("<li>" + renderInline(ul[1]) + "</li>"); }
+    else if (ol) { if (!inList || listTag !== "ol") { closeList(); html.push("<ol>"); inList = true; listTag = "ol"; } html.push("<li>" + renderInline(ol[1]) + "</li>"); }
+    else if (line.trim() === "") { closeList(); }
+    else { closeList(); html.push("<p>" + renderInline(line) + "</p>"); }
+  }
+  closeList();
+  return html.join("");
+}
+
+function renderCodeBlock(code, lang) {
+  const id = "code-" + (++codeSeq);
+  codeStore.set(id, { code: code, lang: lang });
+  const isHtml = /^(html|htm|xml|svg)$/i.test(lang);
+  const btns = [
+    '<button class="small" data-act="copy" data-code="' + id + '">Copy</button>',
+    '<button class="small" data-act="download" data-code="' + id + '">Download</button>',
+    isHtml ? '<button class="small" data-act="preview" data-code="' + id + '">▶ Live Preview</button>' : ""
+  ].join("");
+  return '<div class="code-wrap"><div class="code-head"><span class="lang">' + escapeHtml(lang) + '</span><span class="spacer"></span>' + btns + '</div><pre><code>' + escapeHtml(code) + '</code></pre></div>';
+}
+
+chatEl.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-act]");
+  if (!btn) return;
+  const entry = codeStore.get(btn.dataset.code);
+  if (!entry) return;
+  if (btn.dataset.act === "copy") {
+    navigator.clipboard.writeText(entry.code).then(() => toast("Copied to clipboard")).catch(() => toast("Copy failed", true));
+  } else if (btn.dataset.act === "download") {
+    const extMap = { javascript: "js", js: "js", python: "py", html: "html", css: "css", json: "json", markdown: "md" };
+    const ext = extMap[entry.lang.toLowerCase()] || "txt";
+    downloadBlob(new Blob([entry.code], { type: "text/plain" }), "snippet-" + Date.now() + "." + ext);
+  } else if (btn.dataset.act === "preview") {
+    openPreview(entry.code);
+  }
+});
+
+function downloadBlob(blob, name) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+function openPreview(html) {
+  els.previewTitle.textContent = "Live HTML Preview";
+  els.previewFrame.srcdoc = html;
+  els.previewDialog.showModal();
+}
+
+/* ---------- Line diff ---------- */
+
+function lineDiff(oldText, newText) {
+  const a = oldText === null ? [] : oldText.split("\n");
+  const b = newText.split("\n");
+  const n = a.length, m = b.length;
+  if (n * m > 1000000) {
+    return b.map(l => ["+", l]);
+  }
+  const dp = Array.from({ length: n + 1 }, () => new Uint32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  const out = [];
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) { out.push([" ", a[i]]); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) { out.push(["-", a[i]]); i++; }
+    else { out.push(["+", b[j]]); j++; }
+  }
+  while (i < n) out.push(["-", a[i++]]);
+  while (j < m) out.push(["+", b[j++]]);
+  return out;
+}
+
+function diffHtml(oldText, newText) {
+  const d = lineDiff(oldText, newText);
+  const MAX = 400;
+  const shown = d.slice(0, MAX);
+  const rows = shown.map(pair => {
+    const t = pair[0], line = pair[1];
+    const cls = t === "+" ? "add" : t === "-" ? "del" : "ctx";
+    return '<div class="dl ' + cls + '">' + escapeHtml(t === " " ? "  " + line : t + " " + line) + "</div>";
+  });
+  if (d.length > MAX) rows.push('<div class="dl ctx">… ' + (d.length - MAX) + ' more diff lines truncated …</div>');
+  if (!rows.length) rows.push('<div class="dl ctx">(no changes)</div>');
+  return '<div class="diff">' + rows.join("") + "</div>";
+}
+
+/* ---------- Confirm dialog (promise) ---------- */
+
+function confirmAction(title, bodyHtml, confirmLabel) {
+  return new Promise((resolve) => {
+    els.confirmTitle.textContent = title;
+    els.confirmBody.innerHTML = bodyHtml;
+    els.confirmYes.textContent = confirmLabel || "Confirm";
+    let settled = false;
+    const onAbort = () => { if (!settled) { settled = true; els.confirmDialog.close(); resolve(false); } };
+    if (abortCtl) abortCtl.signal.addEventListener("abort", onAbort, { once: true });
+    const done = (v) => { if (settled) return; settled = true; if (abortCtl) abortCtl.signal.removeEventListener("abort", onAbort); els.confirmDialog.close(); resolve(v); };
+    els.confirmYes.onclick = () => done(true);
+    els.confirmNo.onclick = () => done(false);
+    els.confirmDialog.oncancel = () => resolve(false);
+    els.confirmDialog.showModal();
+  });
+}
+
+/* ============================== File System Access ============================== */
+
+els.btnMount.addEventListener("click", async () => {
+  if (!window.showDirectoryPicker) { toast("File System Access API not supported in this browser (use Chrome/Edge over https or localhost)", true); return; }
+  try {
+    rootHandle = await window.showDirectoryPicker({ mode: "readwrite" });
+    els.mountInfo.textContent = "Mounted: " + rootHandle.name;
+    els.btnUnmount.style.display = "";
+    await renderTree();
+    toast("Folder mounted: " + rootHandle.name);
+  } catch (e) {
+    if (e && e.name !== "AbortError") toast("Mount failed: " + e.message, true);
+  }
+});
+els.btnUnmount.addEventListener("click", () => {
+  rootHandle = null;
+  els.mountInfo.textContent = "No folder mounted. Mount a folder to enable list_files / read_file / write_file / delete_file tools.";
+  els.btnUnmount.style.display = "none";
+  els.fileTree.innerHTML = "";
+  toast("Folder unmounted");
+});
+
+async function renderTree() {
+  if (!rootHandle) { els.fileTree.innerHTML = ""; return; }
+  els.fileTree.innerHTML = '<div class="muted">Scanning…</div>';
+  const frag = document.createDocumentFragment();
+  try { await walkTree(rootHandle, frag, "", 0); els.fileTree.innerHTML = ""; els.fileTree.appendChild(frag); }
+  catch (e) { els.fileTree.innerHTML = '<div class="muted">Tree error: ' + escapeHtml(e.message) + "</div>"; }
+}
+
+async function walkTree(dir, parentEl, prefix, depth) {
+  if (depth > 12) return;
+  let count = 0;
+  for await (const entry of dir.values()) {
+    if (IGNORE_DIRS.has(entry.name)) continue;
+    if (++count > 500) {
+      const more = document.createElement("div");
+      more.className = "muted";
+      more.textContent = "… (500+ entries truncated)";
+      parentEl.appendChild(more);
+      break;
+    }
+    if (entry.kind === "directory") {
+      const det = document.createElement("details");
+      det.open = depth === 0;
+      const sum = document.createElement("summary");
+      sum.textContent = entry.name;
+      det.appendChild(sum);
+      const inner = document.createElement("div");
+      det.appendChild(inner);
+      parentEl.appendChild(det);
+      await walkTree(entry, inner, prefix + entry.name + "/", depth + 1);
+    } else {
+      const row = document.createElement("div");
+      row.className = "file-row";
+      row.textContent = entry.name;
+      row.title = prefix + entry.name;
+      const p = prefix + entry.name;
+      row.addEventListener("click", () => previewFile(p));
+      parentEl.appendChild(row);
+    }
+  }
+}
+
+async function previewFile(path) {
+  try {
+    const text = await readFsFile(path);
+    els.fileViewTitle.textContent = path;
+    els.fileViewPre.textContent = text.length > 100000 ? text.slice(0, 100000) + "\n… (truncated)" : text;
+    els.fileViewDialog.showModal();
+  } catch (e) { toast("Read failed: " + e.message, true); }
+}
+
+function splitPath(path) {
+  return String(path).replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
+}
+
+async function getDirHandle(path, create) {
+  if (!rootHandle) throw new Error("No folder mounted");
+  const parts = splitPath(path);
+  if (parts.length === 0) return rootHandle;
+  let dir = rootHandle;
+  for (let i = 0; i < parts.length - 1; i++) {
+    dir = await dir.getDirectoryHandle(parts[i], { create: !!create });
+  }
+  return dir;
+}
+
+async function getFileHandle(path, create) {
+  const parts = splitPath(path);
+  if (!parts.length) throw new Error("Invalid path");
+  const dir = await getDirHandle(path, create);
+  return dir.getFileHandle(parts[parts.length - 1], { create: !!create });
+}
+
+async function readFsFile(path) {
+  const fh = await getFileHandle(path, false);
+  const file = await fh.getFile();
+  return file.text();
+}
+
+async function writeFsFile(path, content) {
+  const fh = await getFileHandle(path, true);
+  const w = await fh.createWritable();
+  await w.write(content);
+  await w.close();
+}
+
+async function deleteFsPath(path) {
+  const parts = splitPath(path);
+  if (!parts.length) throw new Error("Invalid path");
+  const dir = await getDirHandle(path, false);
+  await dir.removeEntry(parts[parts.length - 1], { recursive: true });
+}
+
+async function listFsFiles() {
+  if (!rootHandle) throw new Error("No folder mounted");
+  const out = [];
+  async function walk(dir, prefix, depth) {
+    if (depth > 12 || out.length > 2000) return;
+    for await (const entry of dir.values()) {
+      if (IGNORE_DIRS.has(entry.name)) continue;
+      if (entry.kind === "directory") await walk(entry, prefix + entry.name + "/", depth + 1);
+      else out.push(prefix + entry.name);
+      if (out.length > 2000) return;
+    }
+  }
+  await walk(rootHandle, "", 0);
+  return out;
+}
+
+/* ============================== Built-in tools ============================== */
+
+function runJavascript(code) {
+  return new Promise((resolve) => {
+    const workerSrc = [
+      'function fmt(v) {',
+      '  if (typeof v === "string") return v;',
+      '  if (v instanceof Error) return v.name + ": " + v.message;',
+      '  try { return JSON.stringify(v, null, 2); } catch (e) { return String(v); }',
+      '}',
+      'self.onmessage = async (e) => {',
+      '  const logs = [];',
+      '  const mk = (type) => (...args) => { try { logs.push({ type: type, text: args.map(fmt).join(" ") }); } catch (err) {} };',
+      '  console.log = mk("log"); console.info = mk("log"); console.warn = mk("warn"); console.error = mk("error");',
+      '  let result, error = null;',
+      '  try { result = await eval(e.data); } catch (err) { error = String(err && err.stack || err); }',
+      '  self.postMessage({ logs: logs, result: result === undefined ? null : fmt(result), error: error });',
+      '};'
+    ].join("\n");
+    const worker = new Worker(URL.createObjectURL(new Blob([workerSrc], { type: "text/javascript" })));
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      worker.terminate();
+      resolve(JSON.stringify({ error: "Execution timed out after 5000 ms and the worker was terminated." }));
+    }, 5000);
+    worker.onmessage = (e) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      worker.terminate();
+      resolve(JSON.stringify(e.data));
+    };
+    worker.onerror = (e) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      worker.terminate();
+      resolve(JSON.stringify({ error: e.message || "Worker error" }));
+    };
+    worker.postMessage(code);
+  });
+}
+
+async function webSearch(query) {
+  const ddgP = fetch("https://api.duckduckgo.com/?q=" + encodeURIComponent(query) + "&format=json&no_html=1&skip_disambig=1")
+    .then(r => r.json()).catch(() => null);
+  const wikiP = fetch("https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=" + encodeURIComponent(query) + "&format=json&origin=*&srlimit=5")
+    .then(r => r.json()).catch(() => null);
+  const pair = await Promise.all([ddgP, wikiP]);
+  const ddg = pair[0], wiki = pair[1];
+  const out = { query: query, duckduckgo: null, wikipedia: [] };
+  if (ddg) {
+    out.duckduckgo = {
+      abstract: ddg.AbstractText || ddg.Abstract || "",
+      abstract_url: ddg.AbstractURL || "",
+      answer: ddg.Answer && typeof ddg.Answer === "string" ? String(ddg.Answer).replace(/<[^>]+>/g, "") : "",
+      definition: ddg.Definition || "",
+      related: (ddg.RelatedTopics || []).filter(t => t.Text).slice(0, 5).map(t => ({ text: t.Text, url: t.FirstURL || "" }))
+    };
+  }
+  if (wiki && wiki.query && Array.isArray(wiki.query.search)) {
+    out.wikipedia = wiki.query.search.map(s => ({
+      title: s.title,
+      snippet: String(s.snippet || "").replace(/<[^>]+>/g, ""),
+      url: "https://en.wikipedia.org/wiki/" + encodeURIComponent(String(s.title).replace(/ /g, "_"))
+    }));
+  }
+  if (!out.duckduckgo || (!out.duckduckgo.abstract && !out.duckduckgo.answer && !out.wikipedia.length)) {
+    out.note = "Limited or no results. DuckDuckGo Instant Answers covers topics/definitions; try rephrasing the query.";
+  }
+  return JSON.stringify(out, null, 2);
+}
+
+/* ============================== Tool schemas & execution ============================== */
+
+function toolSchemas() {
+  const schemas = [
+    {
+      type: "function",
+      function: {
+        name: "run_javascript",
+        description: "Execute JavaScript code in an isolated sandboxed Web Worker with a 5-second timeout. No DOM or network access. console.log/warn/error output and the final expression value are returned.",
+        parameters: { type: "object", properties: { code: { type: "string", description: "JavaScript source to execute" } }, required: ["code"] }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "web_search",
+        description: "Search the web. Queries DuckDuckGo Instant Answer and Wikipedia in parallel and returns JSON snippets.",
+        parameters: { type: "object", properties: { query: { type: "string", description: "Search query" } }, required: ["query"] }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "http_fetch",
+        description: "Fetch a public http(s) URL via GET and return the response body as text (truncated at 20000 chars). Useful for CORS-enabled docs, raw GitHub files, and JSON APIs.",
+        parameters: { type: "object", properties: { url: { type: "string", description: "Absolute http(s) URL" } }, required: ["url"] }
+      }
+    }
+  ];
+  if (rootHandle) {
+    schemas.unshift(
+      {
+        type: "function",
+        function: {
+          name: "list_files",
+          description: "List all files in the user's mounted workspace folder (recursive). Returns an array of relative paths.",
+          parameters: { type: "object", properties: {}, required: [] }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "read_file",
+          description: "Read a text file from the mounted workspace folder by relative path.",
+          parameters: { type: "object", properties: { path: { type: "string", description: "Relative path, e.g. src/index.js" } }, required: ["path"] }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "write_file",
+          description: "Write (create or overwrite) a file in the mounted workspace folder. Nested subdirectories are created automatically. May require user confirmation.",
+          parameters: { type: "object", properties: { path: { type: "string", description: "Relative path" }, content: { type: "string", description: "Full file content to write" } }, required: ["path", "content"] }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "delete_file",
+          description: "Delete a file (or directory, recursively) from the mounted workspace folder. May require user confirmation.",
+          parameters: { type: "object", properties: { path: { type: "string", description: "Relative path" } }, required: ["path"] }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "edit_file",
+          description: "Edit an existing file in the mounted workspace by exact string replacement (aider-style SEARCH/REPLACE). find must match the file content exactly and appear exactly once unless replace_all is true. Cheaper and safer than rewriting the whole file.",
+          parameters: { type: "object", properties: { path: { type: "string", description: "Relative path" }, find: { type: "string", description: "Exact existing text to find" }, replace: { type: "string", description: "Replacement text (empty string to delete)" }, replace_all: { type: "boolean", description: "Replace every occurrence (default false)" } }, required: ["path", "find", "replace"] }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "repo_map",
+          description: "Get a ranked map of the codebase: files with their key symbols (functions, classes, defs), ranked by how often each symbol is referenced. Use it to orient yourself before reading files.",
+          parameters: { type: "object", properties: {}, required: [] }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "list_checkpoints",
+          description: "List file checkpoints (automatic snapshots taken before each AI write/edit/delete).",
+          parameters: { type: "object", properties: {}, required: [] }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "restore_checkpoint",
+          description: "Restore a checkpoint by its index (from list_checkpoints): reverts the file changes made in that operation.",
+          parameters: { type: "object", properties: { index: { type: "number", description: "Checkpoint index from list_checkpoints" } }, required: ["index"] }
+        }
+      }
+    );
+  }
+  return schemas;
+}
+
+async function executeTool(name, argsJson) {
+  let args = {};
+  try { args = JSON.parse(argsJson || "{}"); } catch (e) { return JSON.stringify({ error: "Invalid JSON arguments: " + argsJson }); }
+  try {
+    switch (name) {
+      case "list_files": {
+        const files = await listFsFiles();
+        return JSON.stringify({ count: files.length, files: files });
+      }
+      case "read_file": {
+        if (!args.path) return JSON.stringify({ error: "Missing path" });
+        let text = await readFsFile(args.path);
+        let note = "";
+        if (text.length > 60000) { text = text.slice(0, 60000); note = " …(truncated at 60000 chars)"; }
+        return JSON.stringify({ path: args.path, content: text + note });
+      }
+      case "write_file": {
+        if (!args.path || typeof args.content !== "string") return JSON.stringify({ error: "Missing path or content" });
+        let old = null;
+        try { old = await readFsFile(args.path); } catch (e) {}
+        const val = validateSyntax(args.path, args.content);
+        if (cfg.confirmWrites) {
+          const title = old === null ? "Create file: " + args.path : "Overwrite file: " + args.path;
+          const valHtml = val.msg ? '<p style="color:' + (val.level === "error" ? "#ff453a" : "#ffd60a") + '">⚠ ' + escapeHtml(val.msg) + "</p>" : "";
+          const ok = await confirmAction(title, valHtml + diffHtml(old, args.content), val.level === "error" ? "Write anyway" : "Confirm");
+          if (!ok) return JSON.stringify({ result: "User CANCELLED the write to " + args.path + (val.level === "error" ? " (syntax validation failed: " + val.msg + ")" : "") + ". Do not retry the same write; ask the user what to change." });
+        }
+        if (abortedNow()) return JSON.stringify({ result: "Operation aborted by user before write." });
+        await writeFsFile(args.path, args.content);
+        pushCheckpoint((old === null ? "Create " : "Overwrite ") + args.path, [{ path: args.path, before: old, after: args.content }]);
+        await renderTree();
+        return JSON.stringify({ result: "Wrote " + args.content.length + " chars to " + args.path, created: old === null });
+      }
+      case "delete_file": {
+        if (!args.path) return JSON.stringify({ error: "Missing path" });
+        let old = null;
+        try { old = await readFsFile(args.path); } catch (e) {}
+        if (cfg.confirmWrites) {
+          const body = old !== null
+            ? diffHtml(old, "")
+            : "<p class='muted'>Target not found as a file; it may be a directory. It will be removed recursively.</p>";
+          const ok = await confirmAction("Delete: " + args.path, body);
+          if (!ok) return JSON.stringify({ result: "User CANCELLED the delete of " + args.path });
+        }
+        if (abortedNow()) return JSON.stringify({ result: "Operation aborted by user before delete." });
+        await deleteFsPath(args.path);
+        pushCheckpoint("Delete " + args.path, [{ path: args.path, before: old, after: null }]);
+        await renderTree();
+        return JSON.stringify({ result: "Deleted " + args.path });
+      }
+      case "run_javascript": {
+        if (typeof args.code !== "string") return JSON.stringify({ error: "Missing code" });
+        return await runJavascript(args.code);
+      }
+      case "web_search": {
+        if (!args.query) return JSON.stringify({ error: "Missing query" });
+        return await webSearch(args.query);
+      }
+      case "edit_file": {
+        if (!args.path || typeof args.find !== "string" || typeof args.replace !== "string") return JSON.stringify({ error: "Missing path, find, or replace" });
+        if (!args.find) return JSON.stringify({ error: "find must be a non-empty string" });
+        const oldText = await readFsFile(args.path);
+        let newContent = null, how = "exact";
+        const occurrences = oldText.split(args.find).length - 1;
+        if (occurrences >= 1) {
+          if (occurrences > 1 && !args.replace_all) return JSON.stringify({ error: "find matches " + occurrences + " occurrences. Provide more surrounding context to make it unique, or set replace_all=true." });
+          newContent = occurrences === 1 ? oldText.replace(args.find, args.replace) : oldText.split(args.find).join(args.replace);
+        } else {
+          const fz = fuzzyLineReplace(oldText, args.find, args.replace);
+          if (!fz) return JSON.stringify({ error: "find not found in " + args.path + " (exact match failed and no unique whitespace-insensitive line match). Re-read the file and copy the text exactly." });
+          newContent = fz.content; how = "fuzzy (whitespace-insensitive line match)";
+        }
+        const val = validateSyntax(args.path, newContent);
+        if (cfg.confirmWrites) {
+          const valHtml = val.msg ? '<p style="color:' + (val.level === "error" ? "#ff453a" : "#ffd60a") + '">⚠ ' + escapeHtml(val.msg) + "</p>" : "";
+          const ok = await confirmAction("Edit file: " + args.path + " (" + how + ")", valHtml + diffHtml(oldText, newContent), val.level === "error" ? "Write anyway" : "Confirm");
+          if (!ok) return JSON.stringify({ result: "User CANCELLED the edit to " + args.path + ". Ask the user what to change." });
+        }
+        if (abortedNow()) return JSON.stringify({ result: "Operation aborted by user before write." });
+        await writeFsFile(args.path, newContent);
+        pushCheckpoint("Edit " + args.path, [{ path: args.path, before: oldText, after: newContent }]);
+        await renderTree();
+        return JSON.stringify({ result: "Edited " + args.path + " via " + how + " replacement." });
+      }
+      case "repo_map": {
+        const map = await buildRepoMap();
+        return JSON.stringify({ map: map });
+      }
+      case "list_checkpoints": {
+        return JSON.stringify({ checkpoints: checkpoints.map((c, i) => ({ index: i, when: new Date(c.ts).toISOString(), label: c.label, files: c.changes.map(ch => ch.path) })) });
+      }
+      case "restore_checkpoint": {
+        const idx = parseInt(args.index, 10);
+        if (isNaN(idx) || idx < 0 || idx >= checkpoints.length) return JSON.stringify({ error: "Invalid index. Call list_checkpoints first." });
+        const cp = checkpoints[idx];
+        if (cfg.confirmWrites) {
+          let body = "";
+          for (const ch of cp.changes) body += "<p><b>" + escapeHtml(ch.path) + "</b></p>" + diffHtml(ch.before, ch.after === null ? "" : ch.after);
+          const ok = await confirmAction("Restore checkpoint: " + cp.label, body);
+          if (!ok) return JSON.stringify({ result: "User CANCELLED the restore." });
+        }
+        await restoreCheckpoint(idx);
+        return JSON.stringify({ result: "Restored checkpoint #" + idx + " (" + cp.label + ")." });
+      }
+      case "http_fetch": {
+        const url = String(args.url || "");
+        if (!/^https?:\/\//i.test(url)) return JSON.stringify({ error: "Only absolute http(s) URLs are supported" });
+        const ctl = new AbortController();
+        const timer = setTimeout(() => ctl.abort(), 15000);
+        try {
+          const res = await fetch(url, { signal: ctl.signal, headers: { "Accept": "text/*, application/json;q=0.9, */*;q=0.8" } });
+          const ctype = res.headers.get("content-type") || "";
+          const body = await res.text();
+          const note = body.length > 20000 ? " …(truncated at 20000 chars)" : "";
+          return JSON.stringify({ status: res.status, content_type: ctype, body: body.slice(0, 20000) + note });
+        } catch (e) {
+          return JSON.stringify({ error: "Fetch failed (many sites block browser CORS): " + String(e && e.message || e) });
+        } finally { clearTimeout(timer); }
+      }
+      default:
+        return JSON.stringify({ error: "Unknown tool: " + name });
+    }
+  } catch (e) {
+    return JSON.stringify({ error: String(e && e.message || e) });
+  }
+}
+
+/* ============================== Repo map (aider-style) ============================== */
+
+const SYM_PATTERNS = [
+  [/\b(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/g, "fn"],
+  [/\bclass\s+([A-Za-z_$][\w$]*)/g, "class"],
+  [/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:function\b|\()/g, "fn"],
+  [/^\s*def\s+([A-Za-z_][\w]*)\s*\(/gm, "def"],
+  [/^\s*class\s+([A-Za-z_][\w]*)/gm, "class"],
+  [/^\s*([A-Za-z_][\w]*)\s*:\s*(?:async\s*)?\([^)]*\)\s*=>/gm, "method"],
+  [/^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/gm, "fn"]
+];
+
+async function buildRepoMap() {
+  const files = await listFsFiles();
+  const defs = new Map();
+  const refs = new Map();
+  for (const path of files) {
+    if (!/\.(js|jsx|ts|tsx|mjs|cjs|py|rb|go|rs|java|md|css|html|json)$/i.test(path)) continue;
+    let text = "";
+    try { text = await readFsFile(path); } catch (e) { continue; }
+    if (text.length > 300000) text = text.slice(0, 300000);
+    for (const pair of SYM_PATTERNS) {
+      const re = pair[0];
+      re.lastIndex = 0;
+      let m;
+      while ((m = re.exec(text)) !== null) {
+        const name = m[1];
+        if (!name || name.length < 2) continue;
+        if (!defs.has(name)) defs.set(name, new Set());
+        defs.get(name).add(path);
+      }
+    }
+    const words = text.match(/[A-Za-z_$][\w$]{2,}/g) || [];
+    for (const w of words) refs.set(w, (refs.get(w) || 0) + 1);
+  }
+  const ranked = Array.from(defs.entries())
+    .map(entry => ({ name: entry[0], files: Array.from(entry[1]), score: refs.get(entry[0]) || 0 }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 150);
+  const byFile = new Map();
+  for (const r of ranked) for (const f of r.files) {
+    if (!byFile.has(f)) byFile.set(f, []);
+    byFile.get(f).push(r.name);
+  }
+  let out = "";
+  for (const entry of byFile) out += entry[0] + "\n  " + entry[1].join(", ") + "\n";
+  return out || "(no recognizable symbols found)";
+}
+
+/* ============================== Checkpoints ============================== */
+
+let checkpoints = [];
+const MAX_CHECKPOINTS = 20;
+
+function pushCheckpoint(label, changes) {
+  checkpoints.unshift({ ts: Date.now(), label: label, changes: changes });
+  if (checkpoints.length > MAX_CHECKPOINTS) checkpoints.length = MAX_CHECKPOINTS;
+  renderCheckpoints();
+}
+
+async function restoreCheckpoint(idx) {
+  const cp = checkpoints[idx];
+  if (!cp) return;
+  const errors = [];
+  for (const ch of cp.changes) {
+    try {
+      if (ch.after === null && ch.before !== null) await writeFsFile(ch.path, ch.before);
+      else if (ch.before === null && ch.after !== null) await deleteFsPath(ch.path);
+      else if (ch.before !== null && ch.after !== null) await writeFsFile(ch.path, ch.before);
+    } catch (e) { errors.push(ch.path + ": " + e.message); }
+  }
+  checkpoints.splice(idx, 1);
+  renderCheckpoints();
+  await renderTree();
+  if (errors.length) toast("Restore errors: " + errors.join("; "), true);
+}
+
+function renderCheckpoints() {
+  const sel = els.checkpointSel, btn = els.btnRestore;
+  if (!checkpoints.length) { sel.style.display = "none"; btn.style.display = "none"; sel.innerHTML = ""; return; }
+  sel.style.display = ""; btn.style.display = "";
+  sel.innerHTML = "";
+  checkpoints.forEach((c, i) => {
+    const opt = document.createElement("option");
+    opt.value = String(i);
+    const d = new Date(c.ts);
+    opt.textContent = "#" + i + " " + c.label.slice(0, 28) + " · " + d.toLocaleTimeString();
+    sel.appendChild(opt);
+  });
+}
+
+els.btnRestore.addEventListener("click", async () => {
+  const idx = parseInt(els.checkpointSel.value, 10);
+  if (isNaN(idx) || !checkpoints[idx]) return;
+  const cp = checkpoints[idx];
+  let body = "";
+  for (const ch of cp.changes) body += "<p><b>" + escapeHtml(ch.path) + "</b></p>" + diffHtml(ch.before, ch.after === null ? "" : ch.after);
+  const ok = await confirmAction("Restore checkpoint: " + cp.label, body);
+  if (!ok) return;
+  await restoreCheckpoint(idx);
+  toast("Checkpoint restored");
+});
+
+/* ============================== Fuzzy line replace (aider-style) ============================== */
+
+function fuzzyLineReplace(text, find, replace) {
+  const textLines = text.split("\n");
+  const findLines = find.split("\n").map(l => l.trim());
+  const replaceLines = replace.split("\n");
+  if (!findLines.length) return null;
+  const matches = [];
+  for (let i = 0; i + findLines.length <= textLines.length; i++) {
+    let ok = true;
+    for (let j = 0; j < findLines.length; j++) {
+      if (textLines[i + j].trim() !== findLines[j]) { ok = false; break; }
+    }
+    if (ok) matches.push(i);
+  }
+  if (matches.length !== 1) return null;
+  const i = matches[0];
+  const out = textLines.slice(0, i).concat(replaceLines, textLines.slice(i + findLines.length));
+  return { content: out.join("\n") };
+}
+
+
+/* ============================== Provider API ============================== */
+
+function endpointUrl() {
+  if (cfg.provider === "openrouter") return "https://openrouter.ai/api/v1/chat/completions";
+  return (cfg.zaiBase || "https://api.z.ai/api/coding/paas/v4").replace(/\/+$/, "") + "/chat/completions";
+}
+
+function wireMessages() {
+  const sys = els.systemPrompt.value || cfg.systemPrompt;
+  const out = [{ role: "system", content: sys }];
+  for (const m of messages) {
+    const copy = { role: m.role, content: m.content };
+    if (m.role === "assistant" && m.tool_calls) copy.tool_calls = m.tool_calls;
+    if (m.role === "tool") { copy.tool_call_id = m.tool_call_id; copy.name = m.name; }
+    if (m.role === "assistant" && !m.content && !m.tool_calls) copy.content = "";
+    out.push(copy);
+  }
+  const nudge = (els.steerNudge.value || "").trim();
+  if (nudge) out.push({ role: "system", content: nudge });
+  const budget = parseInt(cfg.contextBudget, 10) || 60000;
+  const est = (arr) => arr.reduce((n, m) => n + Math.ceil((m.content || "").length / 4) + Math.ceil(JSON.stringify(m.tool_calls || "").length / 4), 0);
+  let guard = 0;
+  while (est(out) > budget && out.length > 8 && guard++ < 1000) {
+    let trimmed = false;
+    for (let i = 1; i < out.length - 6; i++) {
+      if (out[i].role === "tool" && out[i].content !== "[trimmed to save context]") { out[i].content = "[trimmed to save context]"; trimmed = true; break; }
+    }
+    if (!trimmed) {
+      for (let i = 1; i < out.length - 6; i++) {
+        if (out[i].role !== "system" && out[i].content && out[i].content !== "[trimmed]") { out[i].content = "[trimmed]"; trimmed = true; break; }
+      }
+    }
+    if (!trimmed) break;
+  }
+  return out;
+}
+
+function requestHeaders() {
+  const h = { "Content-Type": "application/json", "Authorization": "Bearer " + currentKey() };
+  if (cfg.provider === "openrouter") {
+    h["HTTP-Referer"] = location.origin && location.origin !== "null" ? location.origin : "https://localhost";
+    h["X-Title"] = "GLM Agent Harness";
+  }
+  return h;
+}
+
+function buildRequestBody() {
+  const body = {
+    model: currentModel(),
+    messages: wireMessages(),
+    stream: true,
+    temperature: cfg.temperature,
+    top_p: cfg.topP
+  };
+  if (cfg.freqPenalty !== 0) body.frequency_penalty = cfg.freqPenalty;
+  if (cfg.presPenalty !== 0) body.presence_penalty = cfg.presPenalty;
+  if (cfg.topK !== "" && !isNaN(parseInt(cfg.topK, 10))) body.top_k = parseInt(cfg.topK, 10);
+  if (cfg.maxTokens !== "" && !isNaN(parseInt(cfg.maxTokens, 10))) body.max_tokens = parseInt(cfg.maxTokens, 10);
+  if (cfg.seed !== "" && !isNaN(parseInt(cfg.seed, 10))) body.seed = parseInt(cfg.seed, 10);
+  const stops = cfg.stopSeqs.split(",").map(s => s.trim()).filter(Boolean);
+  if (stops.length) body.stop = stops;
+  if (cfg.toolChoice !== "none" && cfg.mode !== "ask") {
+    body.tools = toolSchemas();
+    body.tool_choice = cfg.toolChoice || "auto";
+    if (!cfg.parallelTools) body.parallel_tool_calls = false;
+  }
+  if (cfg.provider === "openrouter") {
+    if (cfg.reasoningMode === "think_on" || cfg.reasoningMode === "effort_high") body.reasoning = { effort: "high" };
+    else if (cfg.reasoningMode === "effort_low") body.reasoning = { effort: "low" };
+    else if (cfg.reasoningMode === "effort_medium") body.reasoning = { effort: "medium" };
+  } else {
+    if (cfg.reasoningMode === "think_on") body.thinking = { type: "enabled" };
+    else if (cfg.reasoningMode === "think_off") body.thinking = { type: "disabled" };
+  }
+  const raw = (cfg.rawOverride || "").trim();
+  if (raw) {
+    try {
+      const patch = JSON.parse(raw);
+      if (patch && typeof patch === "object" && !Array.isArray(patch)) Object.assign(body, patch);
+      else toast("Raw JSON override ignored: must be a JSON object", true);
+    } catch (e) { toast("Raw JSON override is not valid JSON — ignored", true); }
+  }
+  return body;
+}
+
+function makeThinkSplitter() {
+  const THINK_OPEN = String.fromCharCode(60,116,104,105,110,107,62);
+  const THINK_CLOSE = String.fromCharCode(60,47,116,104,105,110,107,62);
+  let inThink = false, buf = "";
+  const split = function (chunk) {
+    let content = "", reasoning = "";
+    buf += chunk;
+    while (buf.length) {
+      if (!inThink) {
+        const t = buf.indexOf(THINK_OPEN);
+        if (t === -1) {
+          const lt = buf.lastIndexOf("<");
+          if (lt !== -1 && buf.length - lt < THINK_OPEN.length && THINK_OPEN.startsWith(buf.slice(lt))) {
+            content += buf.slice(0, lt); buf = buf.slice(lt); break;
+          }
+          content += buf; buf = ""; break;
+        }
+        content += buf.slice(0, t); buf = buf.slice(t + THINK_OPEN.length); inThink = true;
+      } else {
+        const j = buf.indexOf(THINK_CLOSE);
+        if (j === -1) {
+          const lt = buf.lastIndexOf("<");
+          if (lt !== -1 && buf.length - lt < THINK_CLOSE.length && THINK_CLOSE.startsWith(buf.slice(lt))) {
+            reasoning += buf.slice(0, lt); buf = buf.slice(lt); break;
+          }
+          reasoning += buf; buf = ""; break;
+        }
+        reasoning += buf.slice(0, j); buf = buf.slice(j + THINK_CLOSE.length); inThink = false;
+      }
+    }
+    return { content: content, reasoning: reasoning };
+  };
+  split.release = function () {
+    const out = inThink ? { content: "", reasoning: buf } : { content: buf, reasoning: "" };
+    buf = "";
+    return out;
+  };
+  return split;
+}
+
+async function streamCompletion(signal, onDelta) {
+  const res = await fetch(endpointUrl(), {
+    method: "POST",
+    headers: requestHeaders(),
+    body: JSON.stringify(buildRequestBody()),
+    signal
+  });
+  if (!res.ok) {
+    let detail = "";
+    try { detail = await res.text(); } catch (e) {}
+    throw new Error("API error " + res.status + ": " + (detail || res.statusText).slice(0, 600));
+  }
+  if (!res.body) throw new Error("Response body is not readable (streaming unsupported or blocked)");
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let rawAll = "";
+  let content = "", reasoning = "";
+  const toolCalls = [];
+  const splitThink = makeThinkSplitter();
+  let done = false;
+
+  const applyDelta = (delta) => {
+    if (delta.reasoning_content) { reasoning += delta.reasoning_content; onDelta({ reasoning: delta.reasoning_content, content: "" }); }
+    if (typeof delta.content === "string" && delta.content.length) {
+      const parts = splitThink(delta.content);
+      if (parts.content) content += parts.content;
+      if (parts.reasoning) reasoning += parts.reasoning;
+      onDelta({ content: parts.content, reasoning: parts.reasoning });
+    }
+    if (Array.isArray(delta.tool_calls)) {
+      for (const tc of delta.tool_calls) {
+        const idx = tc.index !== undefined ? tc.index : toolCalls.length;
+        while (toolCalls.length <= idx) toolCalls.push({ id: "", name: "", arguments: "" });
+        const slot = toolCalls[idx];
+        if (tc.id) slot.id += tc.id;
+        if (tc.function) {
+          if (tc.function.name) slot.name += tc.function.name;
+          if (tc.function.arguments) slot.arguments += tc.function.arguments;
+        }
+      }
+    }
+  };
+
+  while (!done) {
+    const chunkInfo = await reader.read();
+    if (chunkInfo.done) break;
+    const chunkText = decoder.decode(chunkInfo.value, { stream: true });
+    rawAll += chunkText;
+    buffer += chunkText;
+    let nl;
+    while ((nl = buffer.indexOf("\n")) >= 0) {
+      const line = buffer.slice(0, nl).replace(/\r$/, "");
+      buffer = buffer.slice(nl + 1);
+      if (!line.startsWith("data:")) continue;
+      const data = line.slice(5).trim();
+      if (!data) continue;
+      if (data === "[DONE]") { done = true; break; }
+      let json;
+      try { json = JSON.parse(data); } catch (e) { continue; }
+      if (json.error) throw new Error("API stream error: " + JSON.stringify(json.error).slice(0, 600));
+      const choice = json.choices && json.choices[0];
+      if (choice) {
+        if (choice.delta) applyDelta(choice.delta);
+        else if (choice.message) applyDelta(choice.message);
+      }
+    }
+  }
+  try { await reader.cancel(); } catch (e) {}
+  if (!content && !reasoning && !toolCalls.length && rawAll.indexOf("data:") === -1 && rawAll.trim().startsWith("{")) {
+    try {
+      const j = JSON.parse(rawAll);
+      const msg = j.choices && j.choices[0] && (j.choices[0].message || j.choices[0].delta);
+      if (msg) {
+        if (msg.reasoning_content) { reasoning += msg.reasoning_content; onDelta({ content: "", reasoning: msg.reasoning_content }); }
+        if (typeof msg.content === "string" && msg.content) {
+          const parts = splitThink(msg.content);
+          content += parts.content;
+          if (parts.reasoning) reasoning += parts.reasoning;
+          onDelta({ content: parts.content, reasoning: parts.reasoning });
+        }
+        if (Array.isArray(msg.tool_calls)) {
+          for (const tc of msg.tool_calls) applyDelta({ tool_calls: [tc] });
+        }
+      }
+    } catch (e) {}
+  }
+  return { content: content, reasoning: reasoning, toolCalls: toolCalls };
+}
+
+async function streamCompletionWithRetry(signal, onDelta, onReset) {
+  let attempt = 0;
+  const maxAttempts = cfg.autoRetry ? 3 : 1;
+  for (;;) {
+    try {
+      return await streamCompletion(signal, onDelta);
+    } catch (e) {
+      if (e.name === "AbortError" || attempt >= maxAttempts - 1) throw e;
+      const retriable = /API error (429|5\d\d)/.test(e.message) || /network|Failed to fetch/i.test(e.message);
+      if (!retriable) throw e;
+      attempt++;
+      const waitMs = 1000 * Math.pow(2, attempt - 1);
+      if (onReset) onReset();
+      renderSysNote("⟳ " + e.message.slice(0, 120) + " — retry " + attempt + "/" + (maxAttempts - 1) + " in " + waitMs + "ms");
+      await new Promise(r => setTimeout(r, waitMs));
+    }
+  }
+}
+
+/* ============================== Chat rendering ============================== */
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function renderUserMsg(text) {
+  const wrap = el("div", "msg user");
+  wrap.appendChild(el("div", "who", "You"));
+  const b = el("div", "bubble");
+  b.innerHTML = renderMarkdown(text);
+  wrap.appendChild(b);
+  chatEl.appendChild(wrap);
+  scrollBottom();
+  return wrap;
+}
+
+function renderAssistantShell() {
+  const wrap = el("div", "msg assistant");
+  wrap.appendChild(el("div", "who", "Assistant · " + currentModel()));
+  const trace = el("details", "trace");
+  trace.style.display = "none";
+  trace.appendChild(el("summary", null, "Reasoning Trace"));
+  const traceBody = el("div", "trace-body");
+  trace.appendChild(traceBody);
+  const bubble = el("div", "bubble");
+  wrap.appendChild(trace);
+  wrap.appendChild(bubble);
+  chatEl.appendChild(wrap);
+  scrollBottom();
+  return { wrap: wrap, trace: trace, traceBody: traceBody, bubble: bubble };
+}
+
+function renderToolCard(kind, name, payload, isError) {
+  const card = el("details", "tool-card " + kind + (isError ? " err" : ""));
+  const sum = el("summary", null, kind === "call" ? ("Tool call · " + name) : ("Tool result · " + name));
+  card.appendChild(sum);
+  const body = el("div", "tool-body");
+  const code = el("code");
+  code.textContent = payload;
+  body.appendChild(code);
+  card.appendChild(body);
+  chatEl.appendChild(card);
+  scrollBottom();
+  return card;
+}
+
+function renderSysNote(text) {
+  const n = el("div", "sysnote", text);
+  chatEl.appendChild(n);
+  scrollBottom();
+}
+
+function renderHistory() {
+  chatEl.innerHTML = "";
+  for (const m of messages) {
+    if (m.role === "user") {
+      renderUserMsg(m.content);
+    } else if (m.role === "assistant") {
+      const shell = renderAssistantShell();
+      if (m.reasoning) { shell.trace.style.display = ""; shell.traceBody.textContent = m.reasoning; }
+      shell.bubble.innerHTML = renderMarkdown(m.content || "");
+      if (m.tool_calls) {
+        for (const tc of m.tool_calls) {
+          renderToolCard("call", tc.function.name, tc.function.arguments || "{}");
+        }
+      }
+    } else if (m.role === "tool") {
+      let isError = false;
+      try { isError = !!JSON.parse(m.content).error; } catch (e) {}
+      renderToolCard("result", m.name, m.content, isError);
+    }
+  }
+  scrollBottom();
+}
+
+/* ============================== Agent loop ============================== */
+
+function setRunning(v) {
+  running = v;
+  els.btnSend.disabled = v;
+  els.btnSend.textContent = v ? "Running…" : "Send ▸";
+  els.btnStop.style.display = v ? "" : "none";
+  if (!v) els.stepBadge.textContent = "";
+}
+
+async function runAgent(userText) {
+  messages.push({ role: "user", content: userText });
+  renderUserMsg(userText);
+  saveHistory();
+
+  let maxSteps = cfg.maxSteps;
+  let reflected = false;
+  for (let step = 1; step <= maxSteps; step++) {
+    els.stepBadge.textContent = "step " + step + "/" + maxSteps;
+    const shell = renderAssistantShell();
+    let live = "";
+    let liveReasoning = "";
+    const flush = (() => {
+      let t = null;
+      return () => {
+        if (t) return;
+        t = setTimeout(() => {
+          t = null;
+          shell.bubble.innerHTML = renderMarkdown(live);
+          if (liveReasoning) { shell.trace.style.display = ""; shell.traceBody.textContent = liveReasoning; }
+          scrollBottom();
+        }, 60);
+      };
+    })();
+
+    let result;
+    try {
+      result = await streamCompletionWithRetry(abortCtl.signal, (d) => {
+        if (d.content) { live += d.content; flush(); }
+        if (d.reasoning) { liveReasoning += d.reasoning; flush(); }
+      }, () => {
+        live = "";
+        liveReasoning = "";
+        shell.bubble.innerHTML = "";
+      });
+    } catch (e) {
+      if (e.name === "AbortError") {
+        shell.bubble.innerHTML = renderMarkdown(live || "*(stopped by user)*");
+        if (liveReasoning) { shell.trace.style.display = ""; shell.traceBody.textContent = liveReasoning; }
+        renderSysNote("■ Agent stopped by user at step " + step);
+        if (live || liveReasoning) messages.push({ role: "assistant", content: live, reasoning: liveReasoning });
+        return;
+      }
+      throw e;
+    }
+
+    const toolCalls = result.toolCalls
+      .filter(tc => tc.name)
+      .map(tc => ({
+        id: tc.id || ("call_" + step + "_" + Math.random().toString(36).slice(2, 8)),
+        type: "function",
+        function: { name: tc.name, arguments: tc.arguments || "{}" }
+      }));
+
+    const assistantMsg = { role: "assistant", content: result.content || "", reasoning: result.reasoning || "" };
+    if (toolCalls.length) assistantMsg.tool_calls = toolCalls;
+    messages.push(assistantMsg);
+    saveHistory();
+
+    live = result.content || "";
+    liveReasoning = result.reasoning || "";
+    shell.bubble.innerHTML = renderMarkdown(live);
+    if (liveReasoning) { shell.trace.style.display = ""; shell.traceBody.textContent = liveReasoning; }
+    scrollBottom();
+
+    if (!toolCalls.length) {
+      if (cfg.reflect && !reflected && cfg.mode !== "ask") {
+        reflected = true;
+        renderSysNote("🔁 Reflection pass: the agent is reviewing its own work…");
+        messages.push({ role: "user", content: "Reflection pass: review the work you did above for bugs, missing pieces, or unverified claims. If something needs fixing, use tools to fix or verify it now. If everything is complete and correct, reply with a one-paragraph final summary and call no tools." });
+        saveHistory();
+        continue;
+      }
+      els.stepBadge.textContent = "done · " + step + " step" + (step > 1 ? "s" : "");
+      setTimeout(() => { els.stepBadge.textContent = ""; }, 4000);
+      return;
+    }
+
+    for (const tc of toolCalls) {
+      renderToolCard("call", tc.function.name, tc.function.arguments || "{}");
+      let output;
+      try {
+        output = await executeTool(tc.function.name, tc.function.arguments);
+      } catch (e) {
+        output = JSON.stringify({ error: String(e && e.message || e) });
+      }
+      let isError = false;
+      try { isError = !!JSON.parse(output).error; } catch (e) {}
+      renderToolCard("result", tc.function.name, output, isError);
+      if (output.length > 40000) output = output.slice(0, 40000) + " …(truncated)";
+      messages.push({ role: "tool", tool_call_id: tc.id, name: tc.function.name, content: output });
+      saveHistory();
+    }
+
+    if (step === maxSteps && cfg.autoContinue && maxSteps - cfg.maxSteps < 30) {
+      renderSysNote("⚠ Max steps (" + maxSteps + ") reached — auto-continuing with a continuation nudge. Press Stop to end.");
+      messages.push({ role: "user", content: "Continue the task from where you left off. If it is fully complete, reply with a final summary and call no more tools." });
+      maxSteps += 5;
+    } else if (step === maxSteps) {
+      renderSysNote("⚠ Hard step limit reached. Agent paused.");
+      return;
+    }
+  }
+  renderSysNote("⚠ Hard step limit reached. Agent paused.");
+}
+
+/* ============================== Send / stop / top bar ============================== */
+
+async function onSend() {
+  if (running) return;
+  const text = inputEl.value.trim();
+  if (!text) return;
+  if (text.startsWith("/")) { await handleSlash(text); return; }
+  if (!currentKey()) { toast("Enter an API key for the active provider first", true); return; }
+  inputEl.value = "";
+  inputEl.style.height = "auto";
+  abortCtl = new AbortController();
+  setRunning(true);
+  try {
+    await runAgent(text);
+  } catch (e) {
+    if (e.name === "AbortError") renderSysNote("■ Agent stopped by user");
+    else { renderSysNote("✕ Error: " + e.message); toast(e.message, true); }
+  } finally {
+    setRunning(false);
+    abortCtl = null;
+    saveHistory();
+  }
+}
+
+els.btnSend.addEventListener("click", onSend);
+els.btnStop.addEventListener("click", () => { if (abortCtl) abortCtl.abort(); });
+inputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); }
+});
+inputEl.addEventListener("input", () => {
+  inputEl.style.height = "auto";
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 200) + "px";
+});
+
+$("btnToggleSide").addEventListener("click", () => els.sidebar.classList.toggle("hidden"));
+
+els.btnExport.addEventListener("click", () => {
+  const data = {
+    exportedAt: new Date().toISOString(),
+    provider: cfg.provider,
+    model: currentModel(),
+    settings: {
+      temperature: cfg.temperature, top_p: cfg.topP, top_k: cfg.topK, max_tokens: cfg.maxTokens,
+      frequency_penalty: cfg.freqPenalty, presence_penalty: cfg.presPenalty, seed: cfg.seed,
+      stop: cfg.stopSeqs, reasoning: cfg.reasoningMode, tool_choice: cfg.toolChoice,
+      parallel_tool_calls: cfg.parallelTools, maxSteps: cfg.maxSteps,
+      systemPrompt: cfg.systemPrompt, steerNudge: cfg.steerNudge, rawOverride: cfg.rawOverride,
+      mode: cfg.mode, reflect: cfg.reflect
+    },
+    messages: messages.map(m => { const c = Object.assign({}, m); delete c.reasoning; return c; })
+  };
+  downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }), "glm-agent-chat-" + Date.now() + ".json");
+  toast("Chat exported");
+});
+
+els.btnClear.addEventListener("click", async () => {
+  const ok = await confirmAction("Clear chat?", "<p>This deletes the entire conversation history from localStorage. Mounted folder and settings are kept.</p>");
+  if (!ok) return;
+  messages = [];
+  const sid = activeSessionId();
+  if (sid) { try { localStorage.removeItem(sessionKey(sid)); } catch (e) {} }
+  localStorage.removeItem(LS_HIST);
+  chatEl.innerHTML = "";
+  toast("Chat cleared");
+});
+
+$("btnFetchModels").addEventListener("click", async () => {
+  const btn = $("btnFetchModels");
+  btn.disabled = true;
+  btn.textContent = "…";
+  try {
+    const res = await fetch("https://openrouter.ai/api/v1/models");
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    const models = (data.data || []).map(m => m.id).sort();
+    els.orModelList.innerHTML = "";
+    for (const id of models) {
+      const opt = document.createElement("option");
+      opt.value = id;
+      els.orModelList.appendChild(opt);
+    }
+    toast("Loaded " + models.length + " OpenRouter models");
+  } catch (e) {
+    toast("Model list fetch failed: " + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "⟳ Fetch";
+  }
+});
+
+/* ============================== Pre-write syntax validation ============================== */
+
+function balanceCheck(text, pairs) {
+  const openers = { "(": ")", "[": "]", "{": "}" };
+  const closers = { ")": "(", "]": "[", "}": "{" };
+  const want = pairs ? new Set(pairs.split("")) : null;
+  const stack = [];
+  let inStr = null, inLineC = false, inBlockC = false;
+  let line = 1;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], next = text[i + 1];
+    if (c === "\n") { line++; inLineC = false; continue; }
+    if (inLineC) continue;
+    if (inBlockC) { if (c === "*" && next === "/") { inBlockC = false; i++; } continue; }
+    if (inStr) {
+      if (c === "\\") { i++; continue; }
+      if (c === inStr) inStr = null;
+      continue;
+    }
+    if (c === "/" && next === "/") { inLineC = true; i++; continue; }
+    if (c === "/" && next === "*") { inBlockC = true; i++; continue; }
+    if (c === '"' || c === "'") { inStr = c; continue; }
+    if (c === "`" && !pairs) { inStr = c; continue; }
+    if (openers[c] && (!want || want.has(c))) stack.push({ ch: c, line: line });
+    else if (closers[c] && (!want || want.has(closers[c]))) {
+      const top = stack.pop();
+      if (!top || top.ch !== closers[c]) return { ok: false, char: c, line: line };
+    }
+  }
+  if (stack.length) return { ok: false, char: stack[stack.length - 1].ch, line: stack[stack.length - 1].line };
+  return { ok: true };
+}
+
+function validateSyntax(path, content) {
+  const ext = (String(path).split(".").pop() || "").toLowerCase();
+  if (ext === "json") {
+    try { JSON.parse(content); return { level: "ok", msg: "JSON parses cleanly" }; }
+    catch (e) { return { level: "error", msg: "INVALID JSON: " + e.message }; }
+  }
+  if (["js", "mjs", "cjs", "jsx", "ts", "tsx"].indexOf(ext) !== -1) {
+    const bal = balanceCheck(content);
+    if (!bal.ok) return { level: "error", msg: "Unbalanced '" + bal.char + "' near line " + bal.line + " — file would not parse" };
+    return { level: "ok", msg: "Brackets balanced (full parse not available in browser)" };
+  }
+  if (ext === "css") {
+    const bal = balanceCheck(content, "{}");
+    if (!bal.ok) return { level: "error", msg: "Unbalanced brace near line " + bal.line };
+    return { level: "ok", msg: "Braces balanced" };
+  }
+  return { level: "ok", msg: "" };
+}
+
+/* ============================== Slash commands ============================== */
+
+async function handleSlash(text) {
+  const parts = text.slice(1).split(/\s+/);
+  const cmd = (parts[0] || "").toLowerCase();
+  const rest = parts.slice(1).join(" ").trim();
+  switch (cmd) {
+    case "help":
+      renderSysNote("/help · /map · /checkpoints · /undo · /mode [code|ask] · /model <id> · /export · /clear");
+      break;
+    case "map":
+      if (!rootHandle) { toast("Mount a folder first", true); break; }
+      renderToolCard("result", "repo_map", await buildRepoMap());
+      break;
+    case "checkpoints":
+      renderToolCard("result", "list_checkpoints", JSON.stringify(checkpoints.map((c, i) => ({ index: i, when: new Date(c.ts).toISOString(), label: c.label })), null, 2));
+      break;
+    case "undo": {
+      if (!checkpoints.length) { toast("No checkpoints to undo", true); break; }
+      const cp = checkpoints[0];
+      const ok = await confirmAction("Undo: " + cp.label, cp.changes.map(ch => "<p><b>" + escapeHtml(ch.path) + "</b></p>" + diffHtml(ch.after === null ? "" : ch.after, ch.before === null ? "" : ch.before)).join(""));
+      if (ok) { await restoreCheckpoint(0); toast("Undone: " + cp.label); }
+      break;
+    }
+    case "mode":
+      if (rest !== "code" && rest !== "ask") { toast("Usage: /mode code OR /mode ask", true); break; }
+      els.modeSel.value = rest;
+      readCfgFromUi();
+      renderSysNote("Mode set to " + rest.toUpperCase());
+      break;
+    case "model":
+      if (!rest) { toast("Usage: /model <model-id>", true); break; }
+      if (cfg.provider === "openrouter") { els.orModel.value = rest; }
+      else { els.zaiModelPreset.value = "__custom__"; els.zaiModelCustom.value = rest; }
+      readCfgFromUi();
+      renderSysNote("Model set to " + rest);
+      break;
+    case "export":
+      els.btnExport.click();
+      break;
+    case "clear":
+      els.btnClear.click();
+      break;
+    default:
+      toast("Unknown command: /" + cmd + " — try /help", true);
+  }
+}
+
+
+/* ============================== Sessions ============================== */
+
+const LS_SESSIONS = "glmagent.sessions.v1";
+let sessions = loadSessions();
+
+function loadSessions() {
+  try {
+    const raw = localStorage.getItem(LS_SESSIONS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.activeId && Array.isArray(parsed.list) && parsed.list.length) {
+        if (!parsed.list.some(x => x.id === parsed.activeId)) parsed.activeId = parsed.list[0].id;
+        return parsed;
+      }
+    }
+  } catch (e) {}
+  const legacy = localStorage.getItem(LS_HIST);
+  const first = { id: "s" + Date.now().toString(36), name: "Chat 1", ts: Date.now() };
+  const sess = { activeId: first.id, list: [first] };
+  if (legacy) { try { localStorage.setItem(sessionKey(first.id), legacy); } catch (e) {} }
+  try { localStorage.setItem(LS_SESSIONS, JSON.stringify(sess)); } catch (e) {}
+  return sess;
+}
+
+function renderSessions() {
+  const list = els.sessionList;
+  list.innerHTML = "";
+  for (const sess of sessions.list) {
+    const row = document.createElement("div");
+    row.className = "file-row";
+    row.style.display = "flex";
+    row.style.alignItems = "center";
+    const nameSpan = document.createElement("span");
+    nameSpan.style.flex = "1";
+    nameSpan.style.overflow = "hidden";
+    nameSpan.style.textOverflow = "ellipsis";
+    nameSpan.textContent = (sess.id === sessions.activeId ? "▸ " : "") + sess.name;
+    nameSpan.title = "Click to switch · double-click to rename";
+    nameSpan.addEventListener("click", () => switchSession(sess.id));
+    nameSpan.addEventListener("dblclick", (e) => { e.stopPropagation(); renameSession(sess, nameSpan); });
+    const del = document.createElement("button");
+    del.className = "small";
+    del.textContent = "✕";
+    del.title = "Delete this session";
+    del.addEventListener("click", (e) => { e.stopPropagation(); deleteSession(sess.id); });
+    row.appendChild(nameSpan);
+    row.appendChild(del);
+    list.appendChild(row);
+  }
+}
+
+async function switchSession(id) {
+  if (running) { toast("Stop the agent before switching sessions", true); return; }
+  if (id === sessions.activeId) return;
+  saveHistory();
+  sessions.activeId = id;
+  try { localStorage.setItem(LS_SESSIONS, JSON.stringify(sessions)); } catch (e) {}
+  messages = loadHistory();
+  renderHistory();
+  renderSessions();
+}
+
+function newSession() {
+  if (running) { toast("Stop the agent before creating a session", true); return; }
+  saveHistory();
+  const sess = { id: "s" + Date.now().toString(36), name: "Chat " + (sessions.list.length + 1), ts: Date.now() };
+  sessions.list.unshift(sess);
+  sessions.activeId = sess.id;
+  try { localStorage.setItem(LS_SESSIONS, JSON.stringify(sessions)); } catch (e) {}
+  messages = [];
+  renderHistory();
+  renderSessions();
+  toast("New session started");
+}
+
+async function deleteSession(id) {
+  if (running) { toast("Stop the agent before deleting a session", true); return; }
+  const sess = sessions.list.find(x => x.id === id);
+  if (!sess) return;
+  const ok = await confirmAction("Delete session: " + sess.name, "<p>This permanently deletes this conversation history.</p>");
+  if (!ok) return;
+  try { localStorage.removeItem(sessionKey(id)); } catch (e) {}
+  sessions.list = sessions.list.filter(x => x.id !== id);
+  if (!sessions.list.length) {
+    const fresh = { id: "s" + Date.now().toString(36), name: "Chat 1", ts: Date.now() };
+    sessions.list = [fresh];
+    sessions.activeId = fresh.id;
+    messages = [];
+  } else if (sessions.activeId === id) {
+    sessions.activeId = sessions.list[0].id;
+    messages = loadHistory();
+  }
+  try { localStorage.setItem(LS_SESSIONS, JSON.stringify(sessions)); } catch (e) {}
+  renderHistory();
+  renderSessions();
+}
+
+function renameSession(sess, nameSpan) {
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = sess.name;
+  input.style.fontSize = "12px";
+  nameSpan.replaceWith(input);
+  input.focus();
+  input.select();
+  const commit = () => {
+    sess.name = input.value.trim() || sess.name;
+    try { localStorage.setItem(LS_SESSIONS, JSON.stringify(sessions)); } catch (e) {}
+    renderSessions();
+  };
+  input.addEventListener("blur", commit);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") input.blur(); if (e.key === "Escape") { input.value = sess.name; input.blur(); } });
+}
+
+els.btnNewSession.addEventListener("click", newSession);
+
+
+/* ============================== Ghostty-style terminal ============================== */
+
+const T = {
+  open: false, busy: false, booted: false,
+  hist: [], histIdx: -1,
+  input: "", pos: 0,
+  promptActive: false, promptSegs: [],
+  curDiv: null, replaceMode: false, col: 0,
+  sgr: [],
+  cwd: "",
+  vfs: {},
+  ws: null, wsRaw: false,
+  els: null
+};
+
+const T_COLORS = {
+  30: "c30", 31: "c31", 32: "c32", 33: "c33", 34: "c34", 35: "c35", 36: "c36", 37: "c37",
+  90: "c90", 91: "c91", 92: "c92", 93: "c93", 94: "c94", 95: "c95", 96: "c96", 97: "c97"
+};
+
+function tSgrClass() { return T.sgr.join(" "); }
+
+function tNewline() {
+  const div = document.createElement("div");
+  div.className = "tl";
+  T.els.screen.appendChild(div);
+  T.curDiv = div;
+  T.replaceMode = false;
+  T.col = 0;
+}
+
+function tSetLine(segs) {
+  if (!T.curDiv) tNewline();
+  T.curDiv.innerHTML = "";
+  for (const s of segs) {
+    const sp = document.createElement("span");
+    if (s.cls) sp.className = s.cls;
+    sp.textContent = s.text;
+    T.curDiv.appendChild(sp);
+  }
+}
+
+function tAppend(text, cls) {
+  if (!T.curDiv) tNewline();
+  if (T.replaceMode) { T.curDiv.innerHTML = ""; T.replaceMode = false; }
+  const sp = document.createElement("span");
+  if (cls) sp.className = cls;
+  sp.textContent = text;
+  T.curDiv.appendChild(sp);
+  T.col += text.length;
+}
+
+function tWrite(str) {
+  let i = 0, run = "";
+  const flush = () => { if (run) { tAppend(run, tSgrClass()); run = ""; } };
+  while (i < str.length) {
+    const ch = str[i];
+    if (ch === "\x1b" && str[i + 1] === "[") {
+      flush();
+      let j = i + 2, params = "";
+      while (j < str.length) {
+        const code = str.charCodeAt(j);
+        if (code >= 64 && code <= 126) break;
+        params += str[j]; j++;
+      }
+      const final = str[j]; j++;
+      tCsi(final, params);
+      i = j;
+      continue;
+    }
+    if (ch === "\x1b") { flush(); i += 2; continue; }
+    if (ch === "\n") { flush(); tNewline(); i++; continue; }
+    if (ch === "\r") { flush(); T.replaceMode = true; T.col = 0; i++; continue; }
+    if (ch === "\b") { flush(); if (T.curDiv && T.curDiv.textContent.length) { T.curDiv.textContent = T.curDiv.textContent.slice(0, -1); T.col = Math.max(0, T.col - 1); } i++; continue; }
+    if (ch === "\t") { run += "    "; i++; continue; }
+    if (ch === "\x07") { i++; continue; }
+    run += ch; i++;
+  }
+  flush();
+  tAutoScroll();
+}
+
+function tCsi(final, params) {
+  const nums = params.split(";").map(x => parseInt(x, 10) || 0);
+  if (final === "m") {
+    if (params === "") nums.length = 0, nums.push(0);
+    for (const n of nums) {
+      if (n === 0) T.sgr = [];
+      else if (n === 1) { if (!T.sgr.includes("bold")) T.sgr.push("bold"); }
+      else if (n === 3) { if (!T.sgr.includes("italic")) T.sgr.push("italic"); }
+      else if (n === 4) { if (!T.sgr.includes("under")) T.sgr.push("under"); }
+      else if (n === 2) { if (!T.sgr.includes("dim")) T.sgr.push("dim"); }
+      else if (n === 22) T.sgr = T.sgr.filter(c => c !== "bold" && c !== "dim");
+      else if (n === 23) T.sgr = T.sgr.filter(c => c !== "italic");
+      else if (n === 24) T.sgr = T.sgr.filter(c => c !== "under");
+      else if (n === 39) T.sgr = T.sgr.filter(c => !/^c(3|9)\d$/.test(c));
+      else if (T_COLORS[n]) {
+        T.sgr = T.sgr.filter(c => !/^c(3|9)\d$/.test(c));
+        T.sgr.push(T_COLORS[n]);
+      }
+    }
+  } else if (final === "K") {
+    if (T.curDiv) {
+      const mode = nums[0] || 0;
+      if (mode === 2) { T.curDiv.innerHTML = ""; T.col = 0; }
+      else if (mode === 0) { T.curDiv.textContent = T.curDiv.textContent.slice(0, T.col); }
+    }
+  } else if (final === "J") {
+    if (nums[0] === 2 || params === "") { T.els.screen.innerHTML = ""; T.curDiv = null; }
+  } else if (final === "G") {
+    T.col = (nums[0] || 1) - 1;
+  } else if (final === "A" || final === "B" || final === "C" || final === "D") {
+    if (final === "C") T.col += nums[0] || 1;
+    if (final === "D") T.col = Math.max(0, T.col - (nums[0] || 1));
+  }
+}
+
+function tAutoScroll() {
+  const sc = T.els.scroll;
+  if (sc.scrollHeight - sc.scrollTop - sc.clientHeight < 120) sc.scrollTop = sc.scrollHeight;
+}
+
+function tInputSegs() {
+  const segs = [];
+  const before = T.input.slice(0, T.pos);
+  const at = T.input.slice(T.pos, T.pos + 1);
+  const after = T.input.slice(T.pos + 1);
+  if (before) segs.push({ text: before, cls: "" });
+  segs.push({ text: at || " ", cls: "cursor" });
+  if (after) segs.push({ text: after, cls: "" });
+  return segs;
+}
+
+function tRenderInput() {
+  tSetLine(T.promptSegs.concat(tInputSegs()));
+  tAutoScroll();
+}
+
+function tShowPrompt() {
+  T.promptActive = true;
+  T.input = ""; T.pos = 0; T.replaceMode = false;
+  tNewline();
+  const path = T.cwd ? "~/" + T.cwd : "~";
+  T.promptSegs = [
+    { text: "agent", cls: "c35 bold" },
+    { text: " " + path + " ", cls: "c34" },
+    { text: "❯", cls: "c32 bold" },
+    { text: " ", cls: "" }
+  ];
+  tRenderInput();
+}
+
+function tClearScreen() {
+  T.els.screen.innerHTML = "";
+  T.curDiv = null;
+  if (T.promptActive) tShowPrompt();
+}
+
+function tTok(s) {
+  const out = []; let cur = "", q = null;
+  for (const ch of s) {
+    if (q) { if (ch === q) q = null; else cur += ch; }
+    else if (ch === '"' || ch === "'") q = ch;
+    else if (/\s/.test(ch)) { if (cur) { out.push(cur); cur = ""; } }
+    else cur += ch;
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+function tResolve(p) {
+  if (!p || p === ".") return T.cwd;
+  if (p === "~") return "";
+  const base = p.startsWith("/") ? "" : T.cwd;
+  const parts = (base ? base.split("/") : []).concat(p.split("/"));
+  const st = [];
+  for (const x of parts) {
+    if (!x || x === ".") continue;
+    if (x === "..") st.pop();
+    else st.push(x);
+  }
+  return st.join("/");
+}
+
+async function tLs(path) {
+  const r = tResolve(path || "");
+  if (rootHandle) {
+    const dir = r ? await getDirHandle(r, false) : rootHandle;
+    const out = [];
+    for await (const entry of dir.values()) {
+      if (IGNORE_DIRS.has(entry.name)) continue;
+      out.push({ name: entry.name, dir: entry.kind === "directory" });
+    }
+    return out;
+  }
+  const prefix = r ? r + "/" : "";
+  const set = new Set();
+  for (const k of Object.keys(T.vfs)) {
+    if (!k.startsWith(prefix)) continue;
+    const rest = k.slice(prefix.length);
+    if (!rest) continue;
+    const slash = rest.indexOf("/");
+    if (slash === -1) set.add(rest);
+    else set.add(rest.slice(0, slash) + "/");
+  }
+  return Array.from(set).map(n => ({ name: n.replace(/\/$/, ""), dir: n.endsWith("/") }));
+}
+
+async function tRead(path) {
+  const r = tResolve(path);
+  if (!r) throw new Error("is a directory");
+  if (rootHandle) return readFsFile(r);
+  if (r in T.vfs) return T.vfs[r];
+  throw new Error("no such file or directory: " + r);
+}
+
+async function tWriteFile(path, content) {
+  const r = tResolve(path);
+  if (!r) throw new Error("invalid path");
+  if (rootHandle) {
+    let old = null;
+    try { old = await readFsFile(r); } catch (e) {}
+    await writeFsFile(r, content);
+    pushCheckpoint("term write " + r, [{ path: r, before: old, after: content }]);
+    await renderTree();
+  } else {
+    T.vfs[r] = content;
+  }
+}
+
+async function tDelete(path, recursive) {
+  const r = tResolve(path);
+  if (!r) throw new Error("refusing to remove root");
+  if (rootHandle) {
+    await deleteFsPath(r);
+    await renderTree();
+  } else {
+    const keys = Object.keys(T.vfs).filter(k => k === r || (recursive && k.startsWith(r + "/")));
+    if (!keys.length) throw new Error("no such file or directory: " + r);
+    for (const k of keys) delete T.vfs[k];
+  }
+}
+
+let tCollect = null;
+function emit(text) { if (tCollect) tCollect.push(text); else tWrite(text); }
+
+const T_HELP = [
+  "\x1b[1;35mGLM Agent Harness — terminal\x1b[0m",
+  "\x1b[1mAgent CLIs (drive the real agent loop: streaming + local tools):\x1b[0m",
+  "  codex <prompt>       Codex CLI adapter      flags: -m/--model <id> · --ask · --steps <n>",
+  "  kimi <prompt>        Kimi Code CLI adapter",
+  "  glm <prompt>         GLM CLI adapter",
+  "  claude <prompt>      Claude Code adapter",
+  "  agent <prompt>       generic agent",
+  "\x1b[1mFilesystem (mounted folder, or in-memory VFS if none):\x1b[0m",
+  "  ls [-a] [path] · cd <path> · pwd · cat <file> · head/tail [-n N] <file>",
+  "  touch <file> · mkdir <dir> · rm [-r] <path> · mv/cp <a> <b> · tree · find <pat> · wc <file>",
+  "  grep [-i] <pattern> [file...] · echo <text> (supports > and >> redirects)",
+  "\x1b[1mTools & config:\x1b[0m",
+  "  js <code> · node/run <file.js> · search <query> · fetch <url>",
+  "  mount · unmount · map (repo map) · checkpoints · undo",
+  "  provider [zai|openrouter] · model [id] · temp <n> · steps <n> · mode [code|ask]",
+  "  key (masked) · config · sessions · export · history · clear · exit",
+  "\x1b[1mNative CLIs (real PTY on your machine):\x1b[0m",
+  "  bridge ws://127.0.0.1:8765 — raw passthrough to a local PTY bridge (see: help bridge)",
+  "\x1b[90mKeys: Tab complete · ↑/↓ history · Ctrl+C stop · Ctrl+L clear · Ctrl+U clear line · Ctrl+` toggle\x1b[0m",
+  ""
+].join("\n");
+
+const T_BRIDGE_HELP = [
+  "\x1b[1mbridge — run REAL native CLIs (codex, kimi, gemini, aider, bash…) through this terminal\x1b[0m",
+  "The browser cannot spawn processes, so run this tiny local bridge (loopback only):",
+  "",
+  "  1) npm init -y && npm i ws node-pty",
+  "  2) save bridge.js:",
+  '     const os=require("os"),pty=require("node-pty"),{WebSocketServer}=require("ws");',
+  '     const wss=new WebSocketServer({host:"127.0.0.1",port:8765});',
+  "     wss.on(\"connection\",c=>{",
+  '       const p=pty.spawn(process.env.SHELL||"bash",[],{cwd:os.homedir()});',
+  "       c.on(\"message\",d=>p.write(d.toString()));",
+  "       p.onData(d=>c.send(d));",
+  "       p.onExit(()=>c.close());",
+  "     });",
+  '     console.log("pty bridge on ws://127.0.0.1:8765");',
+  "  3) node bridge.js",
+  "  4) here:  bridge ws://127.0.0.1:8765",
+  "",
+  "Then type natively: codex, kimi, aider, npm test… Keystrokes pipe straight to the PTY.",
+  "bridge status · bridge close",
+  ""
+].join("\n");
+
+async function tAgent(cli, args) {
+  const flags = { model: null, ask: false, steps: null };
+  const words = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "-m" || args[i] === "--model") flags.model = args[++i];
+    else if (args[i] === "--ask") flags.ask = true;
+    else if (args[i] === "--steps") flags.steps = parseInt(args[++i], 10);
+    else words.push(args[i]);
+  }
+  const prompt = words.join(" ");
+  if (!prompt) { emit("usage: " + cli + " [-m model] [--ask] [--steps n] <prompt>\n"); return; }
+  if (!currentKey()) { emit("\x1b[31mno API key set — add one in the sidebar first\x1b[0m\n"); return; }
+  const banners = {
+    codex: "OpenAI Codex CLI", kimi: "Kimi Code CLI", glm: "GLM CLI",
+    claude: "Claude Code CLI", agent: "Agent CLI"
+  };
+  emit("\x1b[2m" + (banners[cli] || cli) + " (harness adapter) · " + cfg.provider + " · " + (flags.model || currentModel()) + (flags.ask ? " · ask mode" : "") + "\x1b[0m\n");
+  const savedMode = cfg.mode;
+  if (flags.ask) cfg.mode = "ask";
+  const savedOverride = modelOverride;
+  if (flags.model) modelOverride = flags.model;
+  const ctl = new AbortController();
+  const prevAbort = abortCtl; abortCtl = ctl;
+  const prevRunning = running; running = true;
+  messages.push({ role: "user", content: prompt });
+  const maxSteps = flags.steps || cfg.maxSteps;
+  try {
+    for (let step = 1; step <= maxSteps; step++) {
+      const res = await streamCompletionWithRetry(ctl.signal, (d) => {
+        if (d.reasoning) tWrite("\x1b[90m" + d.reasoning + "\x1b[0m");
+        if (d.content) tWrite(d.content);
+      }, () => {});
+      const tcs = res.toolCalls
+        .filter(tc => tc.name)
+        .map(tc => ({ id: tc.id || ("t" + step + Math.random().toString(36).slice(2, 8)), type: "function", function: { name: tc.name, arguments: tc.arguments || "{}" } }));
+      const am = { role: "assistant", content: res.content || "", reasoning: res.reasoning || "" };
+      if (tcs.length) am.tool_calls = tcs;
+      messages.push(am);
+      if (!tcs.length) break;
+      for (const tc of tcs) {
+        tWrite("\n\x1b[36m→ " + tc.function.name + "\x1b[0m \x1b[90m" + (tc.function.arguments || "").slice(0, 140) + "\x1b[0m\n");
+        const out = await executeTool(tc.function.name, tc.function.arguments);
+        tWrite("\x1b[90m" + out.slice(0, 400) + (out.length > 400 ? " …" : "") + "\x1b[0m\n");
+        messages.push({ role: "tool", tool_call_id: tc.id, name: tc.function.name, content: out.length > 40000 ? out.slice(0, 40000) : out });
+      }
+      saveHistory();
+    }
+  } catch (e) {
+    if (e.name === "AbortError") tWrite("\x1b[33m■ stopped\x1b[0m\n");
+    else tWrite("\x1b[31m✕ " + (e && e.message || e) + "\x1b[0m\n");
+  } finally {
+    abortCtl = prevAbort;
+    running = prevRunning;
+    modelOverride = savedOverride;
+    if (flags.ask) cfg.mode = savedMode;
+    saveHistory();
+    renderHistory();
+  }
+}
+
+function tBridge(args) {
+  const sub = args[0];
+  if (sub === "close") {
+    if (T.ws) { T.ws.close(); emit("bridge closing…\n"); } else emit("no bridge\n");
+    return;
+  }
+  if (sub === "status") { emit(T.ws ? "connected: " + T.ws.url + "\n" : "not connected\n"); return; }
+  if (sub === "help" || !sub || !/^wss?:\/\//.test(sub)) { emit(T_BRIDGE_HELP); return; }
+  try {
+    if (T.ws) T.ws.close();
+    const ws = new WebSocket(sub);
+    T.ws = ws; T.wsRaw = false;
+    ws.onopen = () => { T.wsRaw = true; emit("\x1b[32m● bridge connected: " + sub + " — raw PTY passthrough active. Ctrl+C sends 0x03. Type 'exit' to leave the shell, then bridge close.\x1b[0m\n"); };
+    ws.onmessage = (ev) => tWrite(String(ev.data));
+    ws.onclose = () => { T.ws = null; T.wsRaw = false; emit("\x1b[90m● bridge closed\x1b[0m\n"); };
+    ws.onerror = () => emit("\x1b[31mbridge error — is your local PTY bridge running on that port?\x1b[0m\n");
+  } catch (e) { emit("bridge failed: " + e.message + "\n"); }
+}
+
+async function tExec(cmdline) {
+  const redir = cmdline.match(/\s(>>?)\s*([^\s>]+)\s*$/);
+  let target = null, appendMode = false;
+  if (redir) { cmdline = cmdline.slice(0, redir.index); target = redir[2]; appendMode = redir[1] === ">>"; tCollect = []; }
+  const argv = tTok(cmdline);
+  const cmd = argv[0] || "";
+  const args = argv.slice(1);
+  try {
+    await tDispatch(cmd, args);
+  } catch (e) {
+    emit("\x1b[31m" + cmd + ": " + (e && e.message || e) + "\x1b[0m\n");
+  }
+  if (target) {
+    const data = (tCollect || []).join("");
+    tCollect = null;
+    let old = "";
+    if (appendMode) { try { old = await tRead(target); } catch (e) {} }
+    await tWriteFile(target, old + data);
+    tWrite("\x1b[90m→ wrote " + data.length + " chars to " + tResolve(target) + "\x1b[0m\n");
+  }
+}
+
+async function tDispatch(cmd, args) {
+  switch (cmd) {
+    case "": break;
+    case "help": emit(T_HELP); break;
+    case "clear": tClearScreen(); break;
+    case "pwd": emit("/" + T.cwd + "\n"); break;
+    case "ls": {
+      const pathArg = args.find(a => !a.startsWith("-"));
+      const items = await tLs(pathArg);
+      if (!items.length) { emit("\x1b[90m(empty)\x1b[0m\n"); break; }
+      emit(items.map(it => it.dir ? "\x1b[34m" + it.name + "/\x1b[0m" : it.name).join("  ") + "\n");
+      break;
+    }
+    case "cd": {
+      const r = tResolve(args[0] || "");
+      if (r && rootHandle) await getDirHandle(r, false);
+      T.cwd = r;
+      break;
+    }
+    case "cat": {
+      if (!args.length) throw new Error("usage: cat <file>");
+      for (const f of args) emit(await tRead(f) + "\n");
+      break;
+    }
+    case "head": case "tail": {
+      const nIdx = args.indexOf("-n");
+      const n = nIdx !== -1 ? parseInt(args[nIdx + 1], 10) || 10 : 10;
+      const file = args.filter((a, i) => a !== "-n" && i !== nIdx + 1 && !a.startsWith("-"))[0];
+      if (!file) throw new Error("usage: " + cmd + " [-n N] <file>");
+      const lines = (await tRead(file)).split("\n");
+      emit((cmd === "head" ? lines.slice(0, n) : lines.slice(-n)).join("\n") + "\n");
+      break;
+    }
+    case "touch": {
+      if (!args[0]) throw new Error("usage: touch <file>");
+      try { await tRead(args[0]); } catch (e) { await tWriteFile(args[0], ""); }
+      break;
+    }
+    case "mkdir": {
+      if (!args[0]) throw new Error("usage: mkdir <dir>");
+      const r = tResolve(args[0]);
+      if (rootHandle) await getDirHandle(r, true);
+      else T.vfs[r + "/.keep"] = "";
+      await renderTree();
+      break;
+    }
+    case "rm": {
+      const rec = args.includes("-r") || args.includes("-rf");
+      const file = args.find(a => !a.startsWith("-"));
+      if (!file) throw new Error("usage: rm [-r] <path>");
+      await tDelete(file, rec);
+      break;
+    }
+    case "mv": case "cp": {
+      if (args.length < 2) throw new Error("usage: " + cmd + " <src> <dst>");
+      const content = await tRead(args[0]);
+      await tWriteFile(args[1], content);
+      if (cmd === "mv") await tDelete(args[0], false);
+      break;
+    }
+    case "echo": emit(args.join(" ") + "\n"); break;
+    case "grep": {
+      const ci = args.includes("-i");
+      const pattern = args.find(a => !a.startsWith("-"));
+      if (!pattern) throw new Error("usage: grep [-i] <pattern> [file...]");
+      let files = args.filter(a => !a.startsWith("-")).slice(1);
+      if (!files.length) files = (await tLs("")).filter(it => !it.dir).map(it => it.name);
+      const re = new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\/* ============================== Init ============================== */"), ci ? "i" : "");
+      for (const f of files) {
+        let text;
+        try { text = await tRead(f); } catch (e) { continue; }
+        text.split("\n").forEach((line, i) => {
+          if (re.test(line)) emit("\x1b[32m" + f + "\x1b[0m:" + (i + 1) + ": " + line + "\n");
+        });
+      }
+      break;
+    }
+    case "find": {
+      const pat = (args[0] || "").toLowerCase();
+      let files;
+      if (rootHandle) files = await listFsFiles();
+      else files = Object.keys(T.vfs);
+      emit(files.filter(f => !pat || f.toLowerCase().includes(pat)).join("\n") + "\n");
+      break;
+    }
+    case "tree": {
+      let files;
+      if (rootHandle) files = await listFsFiles();
+      else files = Object.keys(T.vfs).filter(k => !k.endsWith("/.keep"));
+      emit(files.map(f => f.split("/").join("  ")).join("\n") + "\n");
+      break;
+    }
+    case "wc": {
+      if (!args[0]) throw new Error("usage: wc <file>");
+      const text = await tRead(args[0]);
+      emit("lines " + text.split("\n").length + "  words " + (text.trim().split(/\s+/).filter(Boolean).length) + "  chars " + text.length + "  " + args[0] + "\n");
+      break;
+    }
+    case "js": emit(await runJavascript(args.join(" ")) + "\n"); break;
+    case "node": case "run": {
+      if (!args[0]) throw new Error("usage: " + cmd + " <file.js>");
+      emit(await runJavascript(await tRead(args[0])) + "\n");
+      break;
+    }
+    case "search": {
+      if (!args.length) throw new Error("usage: search <query>");
+      emit(await webSearch(args.join(" ")) + "\n");
+      break;
+    }
+    case "fetch": {
+      if (!args[0]) throw new Error("usage: fetch <url>");
+      emit(await executeTool("http_fetch", JSON.stringify({ url: args[0] })) + "\n");
+      break;
+    }
+    case "map": {
+      if (!rootHandle) throw new Error("mount a folder first (mount)");
+      emit(await buildRepoMap() + "\n");
+      break;
+    }
+    case "mount": {
+      if (!window.showDirectoryPicker) throw new Error("File System Access API unavailable (use Chrome/Edge)");
+      rootHandle = await window.showDirectoryPicker({ mode: "readwrite" });
+      els.mountInfo.textContent = "Mounted: " + rootHandle.name;
+      els.btnUnmount.style.display = "";
+      await renderTree();
+      emit("\x1b[32mmounted " + rootHandle.name + "\x1b[0m\n");
+      break;
+    }
+    case "unmount": els.btnUnmount.click(); emit("unmounted\n"); break;
+    case "checkpoints": {
+      emit(JSON.stringify(checkpoints.map((c, i) => ({ index: i, when: new Date(c.ts).toISOString(), label: c.label })), null, 2) + "\n");
+      break;
+    }
+    case "undo": {
+      if (!checkpoints.length) throw new Error("no checkpoints");
+      await restoreCheckpoint(0);
+      emit("\x1b[32mundone: " + checkpoints.length + " remaining\x1b[0m\n");
+      break;
+    }
+    case "provider": {
+      if (args[0] === "zai" || args[0] === "openrouter") { els.provider.value = args[0]; readCfgFromUi(); }
+      emit("provider: " + cfg.provider + "\n");
+      break;
+    }
+    case "model": {
+      if (args[0]) {
+        if (cfg.provider === "openrouter") els.orModel.value = args[0];
+        else { els.zaiModelPreset.value = "__custom__"; els.zaiModelCustom.value = args[0]; }
+        readCfgFromUi();
+      }
+      emit("model: " + currentModel() + "\n");
+      break;
+    }
+    case "temp": {
+      if (args[0]) { els.temperature.value = parseFloat(args[0]) || 0.7; readCfgFromUi(); }
+      emit("temperature: " + cfg.temperature + "\n");
+      break;
+    }
+    case "steps": {
+      if (args[0]) { els.maxSteps.value = parseInt(args[0], 10) || 10; readCfgFromUi(); }
+      emit("max steps: " + cfg.maxSteps + "\n");
+      break;
+    }
+    case "mode": {
+      if (args[0] === "code" || args[0] === "ask") { els.modeSel.value = args[0]; readCfgFromUi(); }
+      emit("mode: " + cfg.mode + "\n");
+      break;
+    }
+    case "key": {
+      const k = currentKey();
+      emit(k ? "\x1b[32mkey set: " + k.slice(0, 6) + "…" + k.slice(-4) + "\x1b[0m\n" : "\x1b[31mno key set\x1b[0m\n");
+      break;
+    }
+    case "config": {
+      emit(JSON.stringify(Object.assign({}, cfg, { zaiKey: cfg.zaiKey ? "***" : "", orKey: cfg.orKey ? "***" : "" }), null, 2) + "\n");
+      break;
+    }
+    case "sessions": {
+      emit(sessions.list.map(x => (x.id === sessions.activeId ? "▸ " : "  ") + x.name).join("\n") + "\n");
+      break;
+    }
+    case "export": els.btnExport.click(); emit("exported\n"); break;
+    case "history": {
+      T.hist.forEach((h, i) => emit("  " + (i + 1) + "  " + h + "\n"));
+      break;
+    }
+    case "date": emit(new Date().toString() + "\n"); break;
+    case "whoami": emit("agent-user\n"); break;
+    case "about": emit("GLM Agent Harness — zero-dependency browser agent · dual provider · tools · checkpoints\n"); break;
+    case "codex": case "kimi": case "glm": case "claude": case "agent":
+      await tAgent(cmd, args);
+      break;
+    case "bridge": tBridge(args); break;
+    case "exit": termToggle(false); break;
+    default:
+      emit("command not found: " + cmd + " — try 'help'\n");
+  }
+}
+
+async function tSubmit() {
+  const line = T.input;
+  T.promptActive = false;
+  tNewline();
+  if (line.trim()) { T.hist.push(line); T.histIdx = T.hist.length; }
+  T.busy = true;
+  try { await tExec(line); }
+  catch (e) { tWrite("\x1b[31m" + (e && e.message || e) + "\x1b[0m\n"); }
+  T.busy = false;
+  if (T.open) tShowPrompt();
+}
+
+function initTerminal() {
+  T.els = { panel: $("termPanel"), scroll: $("termScroll"), screen: $("termScreen"), bar: $("termBar"), close: $("termClose") };
+  const panel = T.els.panel;
+  panel.tabIndex = 0;
+  $("btnTerm").addEventListener("click", () => termToggle());
+  T.els.close.addEventListener("click", () => termToggle(false));
+  panel.addEventListener("click", () => { if (document.activeElement !== panel) panel.focus(); });
+
+  panel.addEventListener("keydown", async (e) => {
+    if (T.wsRaw && T.ws && T.ws.readyState === 1) {
+      e.preventDefault();
+      if (e.key === "Enter") T.ws.send("\r");
+      else if (e.key === "Backspace") T.ws.send("\x7f");
+      else if (e.ctrlKey && e.key.toLowerCase() === "c") T.ws.send("\x03");
+      else if (e.ctrlKey && e.key.toLowerCase() === "d") T.ws.send("\x04");
+      else if (e.key === "ArrowUp") T.ws.send("\x1b[A");
+      else if (e.key === "ArrowDown") T.ws.send("\x1b[B");
+      else if (e.key === "ArrowRight") T.ws.send("\x1b[C");
+      else if (e.key === "ArrowLeft") T.ws.send("\x1b[D");
+      else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) T.ws.send(e.key);
+      return;
+    }
+    if (e.ctrlKey && e.key === "`") { e.preventDefault(); termToggle(); return; }
+    if (e.ctrlKey && e.key.toLowerCase() === "c") {
+      e.preventDefault();
+      if (T.busy && abortCtl) { abortCtl.abort(); tWrite("\x1b[33m^C\x1b[0m\n"); }
+      else if (T.promptActive) { tWrite("^C\n"); tShowPrompt(); }
+      return;
+    }
+    if (e.key === "Escape") { e.preventDefault(); panel.blur(); return; }
+    if (T.busy || !T.promptActive) { e.preventDefault(); return; }
+    if (e.ctrlKey && e.key.toLowerCase() === "l") { e.preventDefault(); tClearScreen(); return; }
+    if (e.ctrlKey && e.key.toLowerCase() === "u") { e.preventDefault(); T.input = ""; T.pos = 0; tRenderInput(); return; }
+    if (e.ctrlKey && e.key.toLowerCase() === "a") { e.preventDefault(); T.pos = 0; tRenderInput(); return; }
+    if (e.ctrlKey && e.key.toLowerCase() === "e") { e.preventDefault(); T.pos = T.input.length; tRenderInput(); return; }
+    if (e.ctrlKey && e.key.toLowerCase() === "v") {
+      e.preventDefault();
+      try {
+        const text = await navigator.clipboard.readText();
+        T.input = T.input.slice(0, T.pos) + text + T.input.slice(T.pos);
+        T.pos += text.length;
+        tRenderInput();
+      } catch (err) {}
+      return;
+    }
+    if (e.key === "Enter") { e.preventDefault(); await tSubmit(); return; }
+    if (e.key === "Backspace") { e.preventDefault(); if (T.pos > 0) { T.input = T.input.slice(0, T.pos - 1) + T.input.slice(T.pos); T.pos--; tRenderInput(); } return; }
+    if (e.key === "Delete") { e.preventDefault(); T.input = T.input.slice(0, T.pos) + T.input.slice(T.pos + 1); tRenderInput(); return; }
+    if (e.key === "ArrowLeft") { e.preventDefault(); if (T.pos > 0) { T.pos--; tRenderInput(); } return; }
+    if (e.key === "ArrowRight") { e.preventDefault(); if (T.pos < T.input.length) { T.pos++; tRenderInput(); } return; }
+    if (e.key === "Home") { e.preventDefault(); T.pos = 0; tRenderInput(); return; }
+    if (e.key === "End") { e.preventDefault(); T.pos = T.input.length; tRenderInput(); return; }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (T.histIdx > 0) { T.histIdx--; T.input = T.hist[T.histIdx] || ""; T.pos = T.input.length; tRenderInput(); }
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (T.histIdx < T.hist.length - 1) { T.histIdx++; T.input = T.hist[T.histIdx] || ""; T.pos = T.input.length; tRenderInput(); }
+      else { T.histIdx = T.hist.length; T.input = ""; T.pos = 0; tRenderInput(); }
+      return;
+    }
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const words = T.input.slice(0, T.pos).split(/\s+/);
+      const last = words[words.length - 1] || "";
+      let options;
+      if (words.length <= 1) {
+        options = ["codex", "kimi", "glm", "claude", "agent", "bridge", "ls", "cd", "cat", "grep", "find", "tree", "mount", "map", "model", "provider", "search", "fetch", "js", "node", "run", "checkpoints", "undo", "config", "help", "clear", "export", "sessions", "history"].filter(c => c.startsWith(last));
+      } else {
+        let files;
+        try {
+          if (rootHandle) files = await listFsFiles();
+          else files = Object.keys(T.vfs);
+        } catch (err) { files = []; }
+        options = files.filter(f => f.startsWith(last)).map(f => f.includes(" ") ? '"' + f + '"' : f);
+      }
+      if (options.length === 1) {
+        const completed = options[0] + " ";
+        words[words.length - 1] = completed;
+        T.input = words.join(" ") + T.input.slice(T.pos);
+        T.pos += completed.length;
+        tRenderInput();
+      } else if (options.length > 1) {
+        tWrite("\n" + options.join("  ") + "\n");
+        tShowPrompt();
+        T.input = words.join(" ") + T.input.slice(T.pos);
+        T.pos = T.input.length;
+        tRenderInput();
+      }
+      return;
+    }
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      T.input = T.input.slice(0, T.pos) + e.key + T.input.slice(T.pos);
+      T.pos++;
+      tRenderInput();
+    }
+  });
+
+  const bar = T.els.bar;
+  let drag = null;
+  bar.addEventListener("mousedown", (e) => {
+    if (e.target === T.els.close) return;
+    const rect = panel.getBoundingClientRect();
+    drag = { dx: e.clientX - rect.left, dy: e.clientY - rect.top };
+    e.preventDefault();
+  });
+  document.addEventListener("mousemove", (e) => {
+    if (!drag) return;
+    panel.style.left = Math.max(0, e.clientX - drag.dx) + "px";
+    panel.style.top = Math.max(0, e.clientY - drag.dy) + "px";
+    panel.style.right = "auto";
+    panel.style.bottom = "auto";
+  });
+  document.addEventListener("mouseup", () => { drag = null; });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey && e.key === "`") { e.preventDefault(); termToggle(); }
+  });
+}
+
+function termToggle(force) {
+  T.open = force !== undefined ? force : !T.open;
+  T.els.panel.style.display = T.open ? "flex" : "none";
+  if (T.open) {
+    T.els.panel.focus();
+    if (!T.booted) {
+      T.booted = true;
+      tWrite("\x1b[1;35m▌ GLM Agent Harness terminal\x1b[0m \x1b[90m— ghostty-style · zero-dependency\x1b[0m\n");
+      tWrite("\x1b[90mAgent CLIs: codex · kimi · glm · claude · agent   |   native CLIs: bridge ws://…   |   help\x1b[0m\n");
+    }
+    if (!T.promptActive && !T.busy) tShowPrompt();
+  }
+}
+
+
+/* ============================== Init ============================== */
+
+bindCfg();
+renderSessions();
+renderHistory();
+initTerminal();
+if (!messages.length) {
+  renderSysNote("▲ Configure your provider + API key in the sidebar, optionally mount a folder, then send a task. The agent streams reasoning, calls tools locally, and loops until done.");
+}
+</script>
+</body>
+</html>
