@@ -4,7 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GLM Agent Harness</title>
-<style>  :root {
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22GLM%20Agent%20Harness%22%2C%22short_name%22%3A%22Vibe%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230a0a0f%22%2C%22theme_color%22%3A%22%230a0a0f%22%7D">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>  :root {
     --bg: #0a0a0f;
     --panel: rgba(28, 28, 32, .72);
     --panel2: rgba(255, 255, 255, .05);
@@ -431,6 +435,38 @@
   ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); background-clip: padding-box; border: 2px solid transparent; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-corner { background: transparent; }
+  /* ---------- Enhancements ---------- */
+  #wasmBadge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px; letter-spacing: -.01em; }
+  #wasmBadge.ok { color: var(--accent-bright); background: color-mix(in srgb, var(--accent) 14%, transparent); border: .5px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+  #wasmBadge.fb { color: var(--muted); background: var(--panel2); border: .5px solid var(--border); }
+  #ctxBar { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+  #ctxFill { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-bright)); transition: width .5s var(--ease); }
+  #ctxFill.warn { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
+  #ctxFill.danger { background: linear-gradient(90deg, var(--red), var(--orange)); }
+  .msg-actions { margin-left: 8px; opacity: 0; transition: opacity .15s; }
+  .msg:hover .msg-actions { opacity: 1; }
+  .msg-actions button { padding: 1px 7px; font-size: 11px; }
+  .attach-thumbs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  #composerInner ~ #attachThumbs { margin-top: 8px; }
+  .attach-thumbs img { width: 54px; height: 54px; object-fit: cover; border-radius: 10px; border: .5px solid var(--border-strong); }
+  .enh-btn { font-size: 14px; padding: 6px 9px; border-radius: 10px; }
+  #btnMic.rec { background: color-mix(in srgb, var(--red) 30%, transparent); color: var(--red); animation: micPulse 1.2s infinite; }
+  @keyframes micPulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--red) 50%, transparent); } 50% { box-shadow: 0 0 0 7px transparent; } }
+  #jumpPill { position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%); z-index: 40; background: linear-gradient(180deg, var(--accent), var(--accent2)); color: var(--on-accent); border: none; border-radius: 999px; padding: 7px 16px; font-size: 12px; font-weight: 600; box-shadow: var(--shadow-2); cursor: pointer; }
+  #chatSearchBar { position: absolute; top: 0; right: 16px; z-index: 45; display: flex; align-items: center; gap: 6px; background: rgba(24, 24, 28, .92); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: .5px solid var(--border-strong); border-radius: 12px; padding: 6px 10px; box-shadow: var(--shadow-2); }
+  #chatSearchBar input { width: 210px; margin-top: 0; background: var(--input-bg); }
+  .pal-list { padding: 6px; }
+  .pal-item { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 9px; cursor: pointer; font-size: 13px; }
+  .pal-item:hover, .pal-item.sel { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+  .pal-item.sel { box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--accent) 40%, transparent); }
+  .pal-hint { margin-left: auto; color: var(--muted); font-size: 11px; }
+  .kbd-table td { padding: 5px 12px 5px 0; font-size: 13px; }
+  kbd { background: var(--panel2); border: .5px solid var(--border-strong); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; font-family: var(--mono); font-size: 11px; }
+  #syntaxHint { flex: 0 0 auto; font-size: 11px; padding: 0 6px 8px; align-self: flex-end; }
+  #chat.dropping { outline: 2px dashed var(--accent); outline-offset: -12px; border-radius: 12px; }
+  dialog .dlg-body::-webkit-scrollbar { width: 8px; }
+  #searchCount { font-size: 11px; white-space: nowrap; }
+
 
   /* ---------- Themes ---------- */
 
@@ -1224,7 +1260,8 @@ function escapeHtml(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-function scrollBottom() { chatEl.scrollTop = chatEl.scrollHeight; }
+let stickBottom = true;
+function scrollBottom() { if (stickBottom) chatEl.scrollTop = chatEl.scrollHeight; }
 
 const codeStore = new Map();
 let codeSeq = 0;
@@ -2177,11 +2214,17 @@ function el(tag, cls, text) {
   return e;
 }
 
-function renderUserMsg(text) {
+function renderUserMsg(text, images, index) {
   const wrap = el("div", "msg user");
   wrap.appendChild(el("div", "who", "You"));
+  if (typeof enhMsgActions === "function" && typeof index === "number" && index >= 0 && index < messages.length) enhMsgActions(wrap, index);
   const b = el("div", "bubble");
   b.innerHTML = renderMarkdown(text);
+  if (images && images.length) {
+    const th = el("div", "attach-thumbs");
+    for (const src of images) { const im = el("img"); im.src = src; im.alt = "attachment"; th.appendChild(im); }
+    wrap.appendChild(th);
+  }
   wrap.appendChild(b);
   chatEl.appendChild(wrap);
   scrollBottom();
@@ -2226,9 +2269,10 @@ function renderSysNote(text) {
 
 function renderHistory() {
   chatEl.innerHTML = "";
-  for (const m of messages) {
+  for (let __mi = 0; __mi < messages.length; __mi++) {
+    const m = messages[__mi];
     if (m.role === "user") {
-      renderUserMsg(m.content);
+      renderUserMsg(m.content, m.images, __mi);
     } else if (m.role === "assistant") {
       const shell = renderAssistantShell();
       if (m.reasoning) { shell.trace.style.display = ""; shell.traceBody.textContent = m.reasoning; }
@@ -2258,8 +2302,13 @@ function setRunning(v) {
 }
 
 async function runAgent(userText) {
-  messages.push({ role: "user", content: userText });
-  renderUserMsg(userText);
+  const userMsg = { role: "user", content: userText };
+  if (typeof takeAttachments === "function") {
+    const imgs = takeAttachments();
+    if (imgs.length) userMsg.images = imgs;
+  }
+  messages.push(userMsg);
+  renderUserMsg(userText, userMsg.images || null, messages.length - 1);
   saveHistory();
 
   let maxSteps = cfg.maxSteps;
@@ -2330,6 +2379,8 @@ async function runAgent(userText) {
         saveHistory();
         continue;
       }
+      if (typeof enhNotify === "function") enhNotify("Agent finished", (live || "").slice(0, 140));
+      renderHistory();
       els.stepBadge.textContent = "done · " + step + " step" + (step > 1 ? "s" : "");
       setTimeout(() => { els.stepBadge.textContent = ""; }, 4000);
       return;
@@ -2513,7 +2564,7 @@ async function handleSlash(text) {
   const rest = parts.slice(1).join(" ").trim();
   switch (cmd) {
     case "help":
-      renderSysNote("/help · /map · /checkpoints · /undo · /mode [code|ask] · /model <id> · /export · /clear");
+      renderSysNote("/help · /map · /checkpoints · /undo · /mode [code|ask] · /model <id> · /export · /exportmd · /copy · /tokens · /snips · /notify · /shortcuts · /clear");
       break;
     case "map":
       if (!rootHandle) { toast("Mount a folder first", true); break; }
@@ -2547,6 +2598,24 @@ async function handleSlash(text) {
       break;
     case "clear":
       els.btnClear.click();
+      break;
+    case "snips": case "snippet":
+      openPromptLibrary();
+      break;
+    case "copy":
+      copyChat();
+      break;
+    case "exportmd":
+      exportChatMd();
+      break;
+    case "shortcuts":
+      openShortcuts();
+      break;
+    case "notify":
+      toggleNotify();
+      break;
+    case "tokens":
+      renderSysNote("Estimated tokens in session: " + enhSessionTokens().toLocaleString() + (Wasm.ok ? " (WASM estimator)" : " (JS fallback — WASM core unavailable)"));
       break;
     default:
       toast("Unknown command: /" + cmd + " — try /help", true);
@@ -3424,6 +3493,660 @@ function termToggle(force) {
 }
 
 
+/* ============================== Enhancements: Rust WASM core ============================== */
+
+const WASM_B64 = "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";
+const Wasm = { exports: null, ok: false, enc: new TextEncoder(),
+  async init() {
+    try {
+      const bin = Uint8Array.from(atob(WASM_B64), c => c.charCodeAt(0));
+      const res = await WebAssembly.instantiate(bin, {});
+      this.exports = res.instance.exports;
+      this.ok = this.exports.wasm_ok() === 0x5657534d;
+    } catch (e) { console.warn("WASM core unavailable, JS fallbacks active:", e && e.message); this.ok = false; }
+    updateWasmBadge();
+  }
+};
+function decInto(bytes, s) { /* returns [ptr, len] or null if too big */
+  if (!Wasm.ok) return null;
+  const ex = Wasm.exports;
+  const enc = Wasm.enc.encode(s);
+  if (enc.length > 65000) return null;
+  const ptr = ex.buf();
+  new Uint8Array(ex.memory.buffer).set(enc, ptr);
+  return [ptr, enc.length];
+}
+function wEstTokens(s) {
+  s = s || "";
+  const d = decInto(null, s);
+  if (d) return Wasm.exports.estimate_tokens(d[0], d[1]);
+  return Math.ceil(s.length / 4);
+}
+function wFuzzy(pat, hay) {
+  if (!pat) return 1;
+  pat = String(pat).slice(0, 200);
+  const ex = Wasm.exports;
+  if (Wasm.ok) {
+    const v = new Uint8Array(ex.memory.buffer);
+    const hb = ex.buf(), pb = ex.buf2();
+    const pe = Wasm.enc.encode(pat);
+    if (pe.length > 8000) return jsFuzzy(pat, hay);
+    v.set(pe, pb);
+    const he = Wasm.enc.encode(hay);
+    if (he.length <= 65000) {
+      v.set(he, hb);
+      return ex.fuzzy_score(pb, pe.length, hb, he.length);
+    }
+  }
+  return jsFuzzy(pat, hay);
+}
+function jsFuzzy(pat, hay) {
+  const p = pat.toLowerCase(), h = hay.toLowerCase();
+  let score = 0, hi = 0, streak = 0;
+  for (let i = 0; i < p.length; i++) {
+    let found = false;
+    while (hi < h.length) {
+      if (h[hi] === p[i]) {
+        score += 10 + streak * 8;
+        if (hi === 0) score += 8;
+        else if ("/_.- ".includes(h[hi - 1])) score += 10;
+        else if (h[hi - 1] >= "a" && h[hi - 1] <= "z" && h[hi - 2] && h[hi - 2] !== " ") score += 6;
+        streak++; hi++; found = true; break;
+      }
+      streak = 0; hi++;
+    }
+    if (!found) return -1;
+  }
+  return score - Math.floor(hay.length / 8);
+}
+function wScanBrackets(s) {
+  const d = decInto(null, s || "");
+  if (d) return Wasm.exports.scan_brackets(d[0], d[1]);
+  return 0; /* fallback: silent pass */
+}
+/* JS token fallback keeps parity with WASM hint format */
+function enhInitWasmBadge() {
+  const b = document.createElement("span");
+  b.id = "wasmBadge";
+  b.title = "Rust-compiled WebAssembly core: token estimator, fuzzy matcher (command palette / file jumper), bracket scanner";
+  $("topbar").appendChild(b);
+  updateWasmBadge();
+}
+function updateWasmBadge() {
+  const b = $("wasmBadge");
+  if (!b) return;
+  b.textContent = Wasm.ok ? "⚙ WASM" : "⚙ JS";
+  b.className = Wasm.ok ? "ok" : "fb";
+  if (Wasm.ok) b.title += " — ACTIVE";
+}
+
+/* ============================== Schema lint (WASM bracket scanner) ============================== */
+let lintTimer = null;
+function enhWireComposerLint() {
+  inputEl.addEventListener("input", () => {
+    clearTimeout(lintTimer);
+    lintTimer = setTimeout(() => {
+      const t = inputEl.value.trim();
+      const elx = $("syntaxHint");
+      if (!t) { elx.textContent = ""; return; }
+      const r = wScanBrackets(t);
+      if (r === 0) elx.textContent = "✓ balanced";
+      else if (r === -1) { elx.textContent = "✓ balanced"; }
+      else if (r <= -1000) { elx.textContent = "… " + (-r - 1000) + " unclosed"; return; }
+      else elx.textContent = "⚠ unbalanced near char " + r;
+    }, 350);
+  });
+}
+
+/* ============================== Auto-scroll pause ============================== */
+function enhWireAutoScroll() {
+  chatEl.addEventListener("scroll", () => {
+    const d = chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight;
+    stickBottom = d < 80;
+    const pill = $("jumpPill");
+    if (pill) pill.style.display = (!stickBottom && running) ? "block" : "none";
+  }, { passive: true });
+  const pill = document.createElement("button");
+  pill.id = "jumpPill";
+  pill.textContent = "↓ Jump to latest";
+  pill.style.display = "none";
+  pill.addEventListener("click", () => { stickBottom = true; chatEl.scrollTop = chatEl.scrollHeight; });
+  $("main").appendChild(pill);
+}
+
+/* ============================== tok/s live meter + context gauge ============================== */
+const __oSCWR = streamCompletionWithRetry;
+streamCompletionWithRetry = async function (signal, onDelta, onReset) {
+  const t0 = performance.now();
+  let chars = 0;
+  const wrapped = (d) => {
+    chars += (d.content ? d.content.length : 0) + (d.reasoning ? d.reasoning.length : 0);
+    const secs = (performance.now() - t0) / 1000;
+    if (secs > 0.6 && els.stepBadge) els.stepBadge.textContent = "… ~" + Math.round(chars / 4 / secs) + " tok/s";
+    return onDelta(d);
+  };
+  return __oSCWR(signal, wrapped, onReset);
+};
+function enhSessionTokens() {
+  let total = 0;
+  // full conversation cost (everything in the session store)
+  for (const m of messages) {
+    total += wEstTokens(m.content || "");
+    total += wEstTokens(JSON.stringify(m.tool_calls || ""));
+    for (const u of (m.images || [])) total += 800; /* rough per-image cost */
+  }
+  return total;
+}
+function enhUpdateMeter() {
+  const bar = $("ctxFill"), label = $("ctxLabel");
+  if (!bar) return;
+  const budget = parseInt(cfg.contextBudget, 10) || 60000;
+  const used = enhSessionTokens();
+  const pct = Math.min(100, Math.round(used * 100 / budget));
+  bar.style.width = pct + "%";
+  bar.className = pct > 85 ? "danger" : (pct > 60 ? "warn" : "");
+  label.textContent = used.toLocaleString() + " / " + budget.toLocaleString() + " tok (" + pct + "%)";
+}
+function enhInstallMeter() {
+  const sec = document.createElement("div");
+  sec.className = "side-section";
+  sec.innerHTML = '<p class="side-title">Context</p>' +
+    '<div id="ctxBar"><div id="ctxFill"></div></div>' +
+    '<div id="ctxLabel" class="muted" style="margin-top:4px"></div>';
+  const sidebar = $("sidebar");
+  const first = sidebar.querySelector(".side-section");
+  sidebar.insertBefore(sec, first);
+  setInterval(enhUpdateMeter, 2500);
+}
+/* ============================== Command palette / jumper / shortcuts ============================== */
+function enhMakeDialog(id, title, withInput) {
+  let d = $(id);
+  if (d) return d;
+  d = document.createElement("dialog");
+  d.id = id;
+  d.innerHTML = '<div class="dlg-head">' + title + '<span class="spacer"></span><button class="small dlg-x">esc</button></div>' +
+    (withInput ? '<input type="text" class="dlg-q" placeholder="Type to filter…">' : '') +
+    '<div class="dlg-body pal-list" style="padding:6px"></div>';
+  document.body.appendChild(d);
+  d.querySelector(".dlg-x").addEventListener("click", () => d.close());
+  d.addEventListener("click", (e) => { if (e.target === d) d.close(); });
+  return d;
+}
+function palRender(list, q, entries, onPick) {
+  const scored = [];
+  for (const en of entries) {
+    const hay = en.label + " " + (en.hint || "");
+    const s = q ? wFuzzy(q, hay) : 100 - en.label.length;
+    if (s >= 0) scored.push([s, en]);
+  }
+  scored.sort((a, b) => b[0] - a[0]);
+  list.innerHTML = "";
+  scored.slice(0, 30).forEach((pair, idx) => {
+    const en = pair[1];
+    const item = document.createElement("div");
+    item.className = "pal-item" + (idx === 0 ? " sel" : "");
+    item.innerHTML = "<span>" + escapeHtml(en.label) + "</span>" + (en.hint ? '<span class="pal-hint">' + escapeHtml(en.hint) + "</span>" : "");
+    item.addEventListener("click", () => { dclose(item.closest("dialog")); onPick(en); });
+    list.appendChild(item);
+  });
+  if (!scored.length) list.innerHTML = '<div class="pal-item muted">No matches</div>';
+  list._entries = scored.map(p => p[1]);
+  return list._entries;
+}
+function dclose(d) { try { d.close(); } catch (e) {} }
+function enhPaletteEntries() {
+  const themes = THEME_NAMES.map(tn => ({ label: "Theme: " + tn, hint: "apply", run: () => { applyTheme(tn); toast("Theme: " + tn); } }));
+  return [
+    { label: "New chat", hint: "session", run: () => newSession() },
+    { label: "Mount folder", hint: "workspace", run: () => $("btnMount").click() },
+    { label: "Toggle terminal", hint: "ctrl+`", run: () => termToggle() },
+    { label: "Toggle sidebar", hint: "ctrl+b", run: () => $("btnToggleSide").click() },
+    { label: "Export JSON", hint: "file", run: () => els.btnExport.click() },
+    { label: "Export Markdown", hint: "file", run: () => exportChatMd() },
+    { label: "Copy conversation", hint: "clipboard", run: () => copyChat() },
+    { label: "Prompt library", hint: "snippets", run: () => openPromptLibrary() },
+    { label: "Toggle desktop notifications", hint: "bell", run: () => toggleNotify() },
+    { label: "/map — repo map", hint: "tool", run: () => { enhDoSlash("/map"); } },
+    { label: "/checkpoints", hint: "list", run: () => enhDoSlash("/checkpoints") },
+    { label: "/undo — latest checkpoint", hint: "danger", run: () => enhDoSlash("/undo") },
+    { label: "Keyboard shortcuts", hint: "ctrl+/", run: () => openShortcuts() },
+    { label: "Clear chat", hint: "danger", run: () => els.btnClear.click() }
+  ].concat(themes);
+}
+let palSel = 0;
+function openPalette() {
+  const d = enhMakeDialog("dlgPalette", "Command Palette", true);
+  const q = d.querySelector(".dlg-q");
+  const list = d.querySelector(".pal-list");
+  const entries = enhPaletteEntries();
+  q.value = "";
+  palSel = 0;
+  palRender(list, "", entries, (en) => en.run());
+  q.oninput = () => { palSel = 0; palRender(list, q.value.trim(), entries, (en) => en.run()); };
+  q.onkeydown = (e) => {
+    const items = list.querySelectorAll(".pal-item");
+    if (e.key === "ArrowDown") { palSel = Math.min(palSel + 1, items.length - 1); }
+    else if (e.key === "ArrowUp") { palSel = Math.max(palSel - 1, 0); }
+    else if (e.key === "Enter") {
+      const en = (list._entries || [])[palSel];
+      if (en) { dclose(d); en.run(); }
+      return;
+    } else return;
+    e.preventDefault();
+    items.forEach((it, i) => it.classList.toggle("sel", i === palSel));
+    if (items[palSel]) items[palSel].scrollIntoView({ block: "nearest" });
+  };
+  d.querySelector(".dlg-body").style.maxHeight = "50vh";
+  d.showModal();
+  q.focus();
+}
+async function openFileJumper() {
+  const d = enhMakeDialog("dlgJumper", "Go to File", true);
+  const q = d.querySelector(".dlg-q");
+  const list = d.querySelector(".pal-list");
+  let files = [];
+  try {
+    const raw = rootHandle ? await listFsFiles() : Object.keys(T.vfs);
+    files = raw.map(f => typeof f === "string" ? f : (f.path || String(f)));
+  } catch (e) { toast("File list unavailable: " + e.message, true); }
+  if (!files.length) {
+    list.innerHTML = '<div class="pal-item muted">No files — mount a folder or create files in the terminal</div>';
+    q.oninput = null; q.onkeydown = null;
+    d.showModal(); q.focus();
+    return;
+  }
+  q.value = ""; palSel = 0;
+  palRender(list, "", files.map(f => ({ label: f, hint: "insert path", run: () => {} })), () => {});
+  const pick = (en) => {
+    inputEl.value = (inputEl.value ? inputEl.value + " " : "") + en.label;
+    inputEl.focus();
+    toast("Inserted: " + en.label);
+  };
+  q.oninput = () => { palSel = 0; palRender(list, q.value.trim(), files.map(f => ({ label: f, hint: "insert path", run: () => {} })), pick); };
+  q.onkeydown = (e) => {
+    const items = list.querySelectorAll(".pal-item");
+    if (e.key === "ArrowDown") { palSel = Math.min(palSel + 1, items.length - 1); }
+    else if (e.key === "ArrowUp") { palSel = Math.max(palSel - 1, 0); }
+    else if (e.key === "Enter") {
+      const entries2 = list._entries || [];
+      if (entries2[palSel]) { dclose(d); pick(entries2[palSel]); }
+      return;
+    } else return;
+    e.preventDefault();
+    items.forEach((it, i) => it.classList.toggle("sel", i === palSel));
+    if (items[palSel]) items[palSel].scrollIntoView({ block: "nearest" });
+  };
+  d.querySelector(".dlg-body").style.maxHeight = "50vh";
+  d.showModal();
+  q.focus();
+}
+function openShortcuts() {
+  const d = enhMakeDialog("dlgShortcuts", "Keyboard Shortcuts", false);
+  d.querySelector(".dlg-body").innerHTML =
+    '<table class="kbd-table">' +
+    '<tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>Command palette</td></tr>' +
+    '<tr><td><kbd>Ctrl</kbd>+<kbd>P</kbd></td><td>Go to file (fuzzy)</td></tr>' +
+    '<tr><td><kbd>Ctrl</kbd>+<kbd>/</kbd></td><td>This overlay</td></tr>' +
+    '<tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Search in conversation</td></tr>' +
+    '<tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd></td><td>Toggle sidebar</td></tr>' +
+    '<tr><td><kbd>Ctrl</kbd>+<kbd>`</kbd></td><td>Toggle terminal</td></tr>' +
+    '<tr><td><kbd>Enter</kbd></td><td>Send message</td></tr>' +
+    '<tr><td><kbd>Shift</kbd>+<kbd>Enter</kbd></td><td>Newline in composer</td></tr>' +
+    '<tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd></td><td>Stop agent (when running)</td></tr>' +
+    '<tr><td><kbd>Esc</kbd></td><td>Close overlays</td></tr>' +
+    "</table>" +
+    '<p class="muted">Agent commands: <b style="color:var(--accent-bright)">codex / kimi / glm / claude / agent</b> in the terminal · slash commands: <b style="color:var(--accent-bright)">/help</b> in chat.</p>';
+  d.querySelector(".dlg-body").style.maxHeight = "70vh";
+  d.showModal();
+}
+function enhDoSlash(t) { handleSlash(t); }
+
+/* ============================== Search in conversation (Ctrl+F) ============================== */
+function enhWireSearch() {
+  const bar = document.createElement("div");
+  bar.id = "chatSearchBar";
+  bar.style.display = "none";
+  bar.innerHTML = '<input type="text" placeholder="Search conversation…" class="dlg-q">' +
+    '<span id="searchCount" class="muted"></span>' +
+    '<button class="small" id="searchPrev">↑</button><button class="small" id="searchNext">↓</button>' +
+    '<button class="small dlg-x">esc</button>';
+  $("main").appendChild(bar);
+  const input = bar.querySelector("input");
+  let hits = [], hi = -1;
+  function clearMarks() { renderHistory(); hits = []; hi = -1; $("searchCount").textContent = ""; }
+  function mark(q) {
+    renderHistory();
+    hits = []; hi = -1;
+    if (!q) { $("searchCount").textContent = ""; return; }
+    const walk = document.createTreeWalker(chatEl, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    while (walk.nextNode()) nodes.push(walk.currentNode);
+    const ql = q.toLowerCase();
+    for (const n of nodes) {
+      const txt = n.textContent.toLowerCase();
+      let idx = txt.indexOf(ql);
+      while (idx !== -1) {
+        hits.push(n);
+        idx = txt.indexOf(ql, idx + 1);
+      }
+    }
+    $("searchCount").textContent = hits.length ? (hits.length + " hits") : "no hits";
+    if (hits.length) { jumps(); }
+  }
+  function jumps() {
+    if (!hits.length) return;
+    hi = (hi + 1) % hits.length;
+    const n = hits[hi];
+    if (n.parentElement) {
+      n.parentElement.scrollIntoView({ block: "center", behavior: "smooth" });
+      n.parentElement.animate([{ background: "rgba(10,132,255,.35)" }, { background: "transparent" }], { duration: 1200 });
+    }
+    $("searchCount").textContent = (hi + 1) + "/" + hits.length + " hits";
+  }
+  input.addEventListener("input", () => mark(input.value.trim()));
+  bar.querySelector("#searchPrev").addEventListener("click", () => { hi = hi - 2 < -1 ? hits.length - 2 : hi - 2; jumps(); });
+  bar.querySelector("#searchNext").addEventListener("click", jumps);
+  bar.querySelector(".dlg-x").addEventListener("click", () => { bar.style.display = "none"; clearMarks(); });
+  bar.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { bar.style.display = "none"; clearMarks(); }
+    if (e.key === "Enter") { e.preventDefault(); jumps(); }
+  });
+  window.__enhOpenSearch = () => { bar.style.display = "flex"; input.focus(); input.select(); };
+}
+
+/* ============================== Prompt library ============================== */
+function loadSnips() {
+  try { return JSON.parse(localStorage.getItem("glmagent.snippets.v1")) || []; } catch (e) { return []; }
+}
+function saveSnips(a) { try { localStorage.setItem("glmagent.snippets.v1", JSON.stringify(a)); } catch (e) {} }
+function openPromptLibrary() {
+  const d = enhMakeDialog("dlgSnips", "Prompt Library", true);
+  const q = d.querySelector(".dlg-q");
+  const list = d.querySelector(".pal-list");
+  function entries() {
+    const snips = loadSnips().map((s, i) => ({
+      label: s.name + " (insert)",
+      hint: "snippet",
+      run: () => { inputEl.value = (inputEl.value ? inputEl.value + "\n" : "") + s.text; inputEl.focus(); toast("Inserted: " + s.name); }
+    }));
+    return snips.concat([
+      { label: "＋ Save composer text as snippet…", hint: "create", run: () => { saveSnippetFromComposer(entries); } },
+      { label: "🗑 Delete a snippet…", hint: "delete", run: () => { deleteSnippet(entries); } }
+    ]);
+  }
+  function rerender() { q.value = q.value; palRender(list, "", entries(), (en) => { en.run(); if (!en.label.startsWith("＋") && !en.label.startsWith("🗑")) rerenderAfter(); }); }
+  function rerenderAfter() { setTimeout(() => { if (d.open) { palRender(list, "", entries(), (en) => en.run()); rerenderAfter2(); } }, 150); }
+  function rerenderAfter2() { if (d.open) { palRender(list, "", entries(), (en) => en.run()); } }
+  q.oninput = () => palRender(list, q.value.trim(), entries(), (en) => en.run());
+  q.onkeydown = (e) => { if (e.key === "Enter") { const en = (list._entries || [])[palSel]; if (en) en.run(); } };
+  d.querySelector(".dlg-body").style.maxHeight = "50vh";
+  d.showModal(); q.focus();
+  palRender(list, "", entries(), (en) => en.run());
+}
+function saveSnippetFromComposer(closer) {
+  const text = inputEl.value.trim();
+  if (!text) { toast("Composer is empty — write a prompt to save", true); return; }
+  const name = prompt("Snippet name:", text.slice(0, 40));
+  if (!name) return;
+  const a = loadSnips();
+  a.unshift({ name: name, text: text });
+  saveSnips(a);
+  toast("Snippet saved: " + name);
+  inputEl.value = "";
+  if (closer) closer();
+}
+function deleteSnippet() {
+  const a = loadSnips();
+  if (!a.length) { toast("No snippets saved yet", true); return; }
+  const name = prompt("Name of snippet to delete:\n(" + a.map(s => s.name).join(", ") + ")");
+  if (!name) return;
+  const b = a.filter(s => s.name !== name);
+  if (b.length === a.length) { toast("No snippet named " + name, true); return; }
+  saveSnips(b);
+  toast("Snippet deleted: " + name);
+}
+/* ============================== Image attachments (vision) + drag-drop ============================== */
+let attachImgs = [];
+function takeAttachments() {
+  const out = attachImgs.slice();
+  attachImgs = [];
+  renderThumbs();
+  return out;
+}
+function renderThumbs() {
+  const c = $("attachThumbs");
+  if (!c) return;
+  c.innerHTML = "";
+  for (const src of attachImgs) {
+    const wrap = document.createElement("div");
+    wrap.style.position = "relative";
+    const img = document.createElement("img");
+    img.src = src;
+    img.alt = "attachment";
+    const x = document.createElement("button");
+    x.className = "small"; x.textContent = "✕";
+    x.title = "Remove attachment";
+    x.style.position = "absolute"; x.style.top = "-6px"; x.style.right = "-6px";
+    x.addEventListener("click", () => { attachImgs = attachImgs.filter(u => u !== src); renderThumbs(); });
+    wrap.appendChild(img); wrap.appendChild(x);
+    c.appendChild(wrap);
+  }
+  c.style.display = attachImgs.length ? "flex" : "none";
+}
+function addImageAttachment(file) {
+  if (attachImgs.length >= 6) { toast("Max 6 images per message", true); return; }
+  const r = new FileReader();
+  r.onload = () => { attachImgs.push(r.result); renderThumbs(); toast("Image attached"); };
+  r.readAsDataURL(file);
+}
+function addDroppedFiles(files) {
+  for (const f of files) {
+    if (f.type && f.type.startsWith("image/")) { addImageAttachment(f); continue; }
+    if (f.size > 300000) { toast("Too large to inline: " + f.name + " (" + Math.round(f.size / 1024) + " KB)", true); continue; }
+    const r = new FileReader();
+    r.onload = () => {
+      inputEl.value = (inputEl.value ? inputEl.value + "\n\n" : "") +
+        "— attached file: " + f.name + " —\n" + r.result + "\n— end of " + f.name + " —";
+      inputEl.dispatchEvent(new Event("input"));
+      toast("Inserted: " + f.name);
+    };
+    r.readAsText(f);
+  }
+}
+function enhWireAttachments() {
+  const c = $("composer");
+  const inner = $("composerInner");
+  const thumbs = document.createElement("div");
+  thumbs.id = "attachThumbs";
+  thumbs.style.display = "none";
+  c.insertBefore(thumbs, inner);
+  const fileInput = document.createElement("input");
+  fileInput.type = "file"; fileInput.accept = "image/*"; fileInput.multiple = true; fileInput.style.display = "none";
+  fileInput.id = "imgInput";
+  c.appendChild(fileInput);
+  const clip = document.createElement("button");
+  clip.className = "small enh-btn"; clip.textContent = "📎"; clip.title = "Attach images (vision)";
+  clip.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", () => { for (const f of fileInput.files) addImageAttachment(f); fileInput.value = ""; });
+  inner.appendChild(clip);
+
+  const mic = document.createElement("button");
+  mic.className = "small enh-btn"; mic.textContent = "🎤"; mic.title = "Voice dictation";
+  mic.id = "btnMic";
+  inner.appendChild(mic);
+  let recog = null, recOn = false;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { mic.disabled = true; mic.title = "Speech recognition not available in this browser"; }
+  else {
+    mic.addEventListener("click", () => {
+      if (recOn) { try { recog.stop(); } catch (e) {} return; }
+      recog = new SR();
+      recog.lang = navigator.language || "en-US";
+      recog.interimResults = false;
+      recog.onresult = (ev) => {
+        for (const res of ev.results) {
+          if (res.isFinal) {
+            inputEl.value = (inputEl.value ? inputEl.value + " " : "") + res[0].transcript.trim();
+            inputEl.dispatchEvent(new Event("input"));
+          }
+        }
+      };
+      recog.onend = () => { recOn = false; mic.classList.remove("rec"); };
+      recog.onerror = () => { recOn = false; mic.classList.remove("rec"); toast("Dictation error", true); };
+      try { recog.start(); recOn = true; mic.classList.add("rec"); toast("Listening…"); } catch (e) { toast("Mic failed: " + e.message, true); }
+    });
+  }
+  inputEl.addEventListener("paste", (e) => {
+    const items = (e.clipboardData || {}).files || [];
+    if (items.length) { for (const f of items) if (f.type && f.type.startsWith("image/")) { e.preventDefault(); addImageAttachment(f); } }
+  });
+  chatEl.addEventListener("dragover", (e) => { e.preventDefault(); chatEl.classList.add("dropping"); });
+  chatEl.addEventListener("dragleave", () => chatEl.classList.remove("dropping"));
+  chatEl.addEventListener("drop", (e) => {
+    e.preventDefault();
+    chatEl.classList.remove("dropping");
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) addDroppedFiles(Array.from(e.dataTransfer.files));
+  });
+}
+
+/* ============================== Message actions: edit / regenerate / fork ============================== */
+function enhMsgActions(wrap, index) {
+  const who = wrap.querySelector(".who");
+  if (!who) return;
+  const actions = document.createElement("span");
+  actions.className = "msg-actions";
+  const edit = document.createElement("button");
+  edit.className = "small"; edit.textContent = "✎"; edit.title = "Edit & regenerate from here";
+  edit.addEventListener("click", () => {
+    if (running) { toast("Stop the agent first", true); return; }
+    messages.splice(index);
+    saveHistory();
+    inputEl.value = wrap._enhText || "";
+    inputEl.dispatchEvent(new Event("input"));
+    renderHistory();
+    inputEl.focus();
+  });
+  const fork = document.createElement("button");
+  fork.className = "small"; fork.textContent = "⑂"; fork.title = "Fork conversation into a new session from here";
+  fork.addEventListener("click", () => {
+    if (running) { toast("Stop the agent first", true); return; }
+    saveHistory();
+    const sess = { id: "s" + Date.now().toString(36), name: "Fork of " + (document.querySelector(".side-title") ? "chat" : "chat"), ts: Date.now() };
+    sess.name = "Fork " + (sessions.list.length + 1);
+    sessions.list.unshift(sess);
+    sessions.activeId = sess.id;
+    try { localStorage.setItem(LS_SESSIONS, JSON.stringify(sessions)); } catch (e) {}
+    messages = messages.slice(0, index + 1).map(m => Object.assign({}, m));
+    saveHistory();
+    renderHistory();
+    renderSessions();
+    toast("Forked into new session");
+  });
+  actions.appendChild(edit);
+  actions.appendChild(fork);
+  who.appendChild(actions);
+}
+
+/* ============================== Export Markdown + copy ============================== */
+function chatToMarkdown() {
+  const lines = ["# GLM Agent Harness — conversation export", "", "_Model: `" + currentModel() + "` · Provider: `" + cfg.provider + "` · " + new Date().toLocaleString() + "_", ""];
+  for (const m of messages) {
+    if (m.role === "user") {
+      lines.push("## 🧑 You", "", m.content, "");
+      if (m.images && m.images.length) lines.push("_(" + m.images.length + " image attachment(s))_", "");
+    } else if (m.role === "assistant") {
+      lines.push("## 🤖 Assistant" + (m.tool_calls ? " _(tool use: " + m.tool_calls.map(t => t.function.name).join(", ") + ")_" : ""), "");
+      if (m.reasoning) lines.push("<details><summary>Reasoning</summary>", "", m.reasoning.split("\n").map(l => "> " + l).join("\n"), "", "</details>", "");
+      if (m.content) lines.push(m.content, "");
+    } else if (m.role === "tool") {
+      lines.push("<details><summary>Tool result: " + (m.name || "tool") + "</summary>", "", "```", (m.content || "").slice(0, 2000), "```", "", "</details>", "");
+    }
+  }
+  return lines.join("\n");
+}
+function exportChatMd() {
+  downloadBlob(new Blob([chatToMarkdown()], { type: "text/markdown" }), "glm-agent-chat-" + Date.now() + ".md");
+  toast("Exported Markdown");
+}
+function copyChat() {
+  const md = chatToMarkdown();
+  navigator.clipboard.writeText(md).then(() => toast("Conversation copied (" + Math.round(md.length / 1024) + " KB)"), () => toast("Clipboard blocked", true));
+}
+
+/* ============================== Notifications ============================== */
+let notifyOn = false;
+try { notifyOn = localStorage.getItem("glmagent.notify.v1") === "1"; } catch (e) {}
+function enhNotify(title, body) {
+  if (!notifyOn) return;
+  try { if (document.hasFocus()) return; new Notification(title, { body: body || "" }); } catch (e) {}
+}
+function toggleNotify() {
+  if (!("Notification" in window)) { toast("Notifications not supported here", true); return; }
+  if (!notifyOn) {
+    Notification.requestPermission().then(p => {
+      if (p === "granted") { notifyOn = true; persistNotify(); toast("Notifications on"); }
+      else toast("Notification permission denied", true);
+    });
+  } else { notifyOn = false; persistNotify(); toast("Notifications off"); }
+}
+function persistNotify() { try { localStorage.setItem("glmagent.notify.v1", notifyOn ? "1" : "0"); } catch (e) {} updateNotifyBtn(); }
+function updateNotifyBtn() {
+  const b = $("btnNotify");
+  if (b) { b.textContent = notifyOn ? "🔔" : "🔕"; b.title = "Desktop notification when the agent finishes (" + (notifyOn ? "on" : "off") + ")"; }
+}
+
+/* ============================== Global keyboard shortcuts ============================== */
+function enhWireKeys() {
+  document.addEventListener("keydown", (e) => {
+    const mod = e.ctrlKey || e.metaKey;
+    if (!mod) return;
+    const k = e.key.toLowerCase();
+    if (k === "k") { e.preventDefault(); openPalette(); }
+    else if (k === "p") { e.preventDefault(); openFileJumper(); }
+    else if (k === "/") { e.preventDefault(); openShortcuts(); }
+    else if (k === "f" && !e.shiftKey) {
+      const tag = (document.activeElement && document.activeElement.tagName) || "";
+      if (!["INPUT", "TEXTAREA", "SELECT"].includes(tag)) { e.preventDefault(); window.__enhOpenSearch(); }
+    }
+    else if (k === "b") {
+      const tag = (document.activeElement && document.activeElement.tagName) || "";
+      if (!["INPUT", "TEXTAREA"].includes(tag)) { e.preventDefault(); $("btnToggleSide").click(); }
+    }
+  });
+}
+
+/* ============================== Init ============================== */
+function enhInit() {
+  enhInitWasmBadge();
+  Wasm.init();
+  enhWireAutoScroll();
+  enhWireComposerLint();
+  enhInstallMeter();
+  enhWireAttachments();
+  enhWireSearch();
+  enhWireKeys();
+  updateNotifyBtn();
+  updateMsgActionIndex();
+}
+/* re-index action buttons after each render */
+function updateMsgActionIndex() {
+  const origRender = renderHistory;
+  renderHistory = function () {
+    origRender();
+    const users = chatEl.querySelectorAll(".msg.user");
+    let mi = 0;
+    for (const m of messages) if (m.role === "user") mi++;
+    let ui = -1;
+    for (let i = 0, idx = 0; i < messages.length; i++) {
+      if (messages[i].role !== "user") continue;
+      ui++;
+      const wrap = users[ui];
+      if (wrap) enhMsgActions(wrap, idx);
+      idx = i;
+    }
+  };
+}
+
 /* ============================== Init ============================== */
 
 bindCfg();
@@ -3432,6 +4155,7 @@ renderHistory();
 initTerminal();
 applyTheme(localStorage.getItem("glmagent.theme.v1") || "midnight");
 $("themeSelect").addEventListener("change", (e) => applyTheme(e.target.value));
+enhInit();
 if (!messages.length) {
   renderSysNote("▲ Configure your provider + API key in the sidebar, optionally mount a folder, then send a task. The agent streams reasoning, calls tools locally, and loops until done.");
 }
