@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 <title>GLM Agent Harness</title>
 <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22GLM%20Agent%20Harness%22%2C%22short_name%22%3A%22Vibe%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230a0a0f%22%2C%22theme_color%22%3A%22%230a0a0f%22%7D">
 <meta name="theme-color" content="#0a0a0f">
@@ -251,7 +251,6 @@
     transition: background .12s;
   }
   details.trace > summary:hover { background: var(--hov1); }
-  details.trace > summary::before { content: "🧠 "; }
   details.trace > .trace-body {
     padding: 9px 14px; border-top: .5px solid var(--border);
     color: var(--label2); font-family: var(--mono); font-size: 12px;
@@ -275,10 +274,8 @@
   }
   .tool-card[open] > summary::before { content: "▾"; transform: rotate(0deg); }
   .tool-card.call > summary { color: var(--accent-bright); }
-  .tool-card.call > summary::after { content: "🛠"; margin-left: auto; }
   .tool-card.result > summary { color: var(--green); }
   .tool-card.result.err > summary { color: var(--red); }
-  .tool-card.result > summary::after { content: "↩"; margin-left: auto; }
   .tool-card .tool-body {
     padding: 9px 14px; border-top: .5px solid var(--border);
     font-family: var(--mono); font-size: 12px; white-space: pre-wrap;
@@ -816,6 +813,103 @@
     --toast-bg: rgba(6, 24, 12, .9);
     --dialog-bg: rgba(4, 16, 8, .95);
   }
+
+  /* ============================== Mobile / iPhone Air optimization ============================== */
+  html { height: 100%; }
+  body { height: 100dvh; min-height: 100dvh; overscroll-behavior: none; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  #app { height: 100vh; height: 100dvh; }
+  #main { position: relative; }
+  #sideBackdrop {
+    position: fixed; inset: 0; z-index: 55;
+    background: rgba(0, 0, 0, .42);
+    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+    opacity: 0; pointer-events: none; transition: opacity .3s var(--ease);
+  }
+  #sideBackdrop.show { opacity: 1; pointer-events: auto; }
+  .icn {
+    width: 1em; height: 1em; display: inline-block; vertical-align: -.14em;
+    fill: none; stroke: currentColor; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round; flex: none;
+  }
+  button .icn { pointer-events: none; }
+  #turnBar {
+    max-width: 980px; margin: 0 auto 8px; display: flex; gap: 8px; justify-content: center;
+    animation: msgIn .22s var(--ease) both;
+  }
+  #planCard {
+    position: absolute; top: 12px; right: 14px; z-index: 25;
+    width: 280px; max-height: 46dvh; overflow-y: auto;
+    background: var(--panel); -webkit-backdrop-filter: blur(28px) saturate(1.6); backdrop-filter: blur(28px) saturate(1.6);
+    border: .5px solid var(--border-strong); border-radius: 14px;
+    box-shadow: var(--shadow-2); padding: 10px 12px;
+    animation: msgIn .22s var(--ease) both;
+  }
+  #planCard .plan-head { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--label2); margin-bottom: 6px; }
+  #planCard .plan-head .spacer { flex: 1; }
+  #planCard .plan-step { display: flex; align-items: flex-start; gap: 7px; font-size: 12px; line-height: 1.4; padding: 3px 0; color: var(--text); }
+  #planCard .plan-step .icn { margin-top: 1.5px; color: var(--muted); }
+  #planCard .plan-step.done { color: var(--muted); text-decoration: line-through; }
+  #planCard .plan-step.done .icn { color: var(--green); }
+  #planCard .plan-step.active .icn { color: var(--accent); }
+  #planCard .plan-note { font-size: 11px; color: var(--muted); margin-top: 6px; font-style: italic; }
+  .ev-item {
+    display: flex; gap: 8px; align-items: baseline; padding: 7px 4px;
+    border-bottom: .5px solid var(--border); font-size: 12px;
+  }
+  .ev-item:last-child { border-bottom: none; }
+  .ev-kind { font-family: var(--mono); font-size: 10.5px; color: var(--accent-bright); white-space: nowrap; }
+  .ev-detail { flex: 1; color: var(--text); word-break: break-word; }
+  .ev-time { font-size: 10.5px; color: var(--muted); font-family: var(--mono); white-space: nowrap; }
+  .perm-row { display: flex; align-items: center; gap: 8px; padding: 6px 2px; border-bottom: .5px solid var(--border); }
+  .perm-row span.tname { font-family: var(--mono); font-size: 12px; flex: 1; }
+  .mem-item { display: flex; gap: 8px; align-items: flex-start; padding: 7px 2px; border-bottom: .5px solid var(--border); font-size: 12px; }
+  .mem-item .mtext { flex: 1; word-break: break-word; }
+  .mem-item .mts { font-size: 10.5px; color: var(--muted); font-family: var(--mono); white-space: nowrap; }
+
+  @media (max-width: 768px) {
+    #sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: min(86vw, 360px); min-width: 0; z-index: 60;
+      margin-left: 0 !important;
+      transform: translateX(-104%);
+      transition: transform .32s var(--ease);
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      -webkit-overflow-scrolling: touch;
+    }
+    #sidebar:not(.hidden) { transform: translateX(0); box-shadow: 0 0 70px rgba(0, 0, 0, .55); }
+    #chat {
+      padding: 14px 12px;
+      padding-left: max(12px, env(safe-area-inset-left));
+      padding-right: max(12px, env(safe-area-inset-right));
+      -webkit-overflow-scrolling: touch;
+    }
+    .bubble, .msg { max-width: 100%; }
+    #chat pre, .code-wrap, .tool-body code, #fileViewPre { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #topbar {
+      padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
+      padding-left: max(10px, env(safe-area-inset-left));
+      gap: 6px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    }
+    #topbar::-webkit-scrollbar { display: none; }
+    #topbar button, #topbar select, #topbar > span { flex: 0 0 auto; }
+    #providerBadge { max-width: 30vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #btnToggleSide { font-size: 15px; }
+    #composer { padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); }
+    #composerInner { padding: 6px 8px; gap: 6px; max-width: 100%; min-width: 0; }
+    #input { font-size: 16px; min-width: 0; width: 100%; max-height: 160px; }
+    #btnSend, .enh-btn { flex: 0 0 auto; }
+    #hint { display: none; }
+    #termPanel {
+      right: 0; left: 0; bottom: 0; top: auto;
+      width: 100vw; height: min(86dvh, 700px);
+      border-radius: 14px 14px 0 0;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    dialog { width: 94vw; max-width: 94vw; max-height: 86dvh; }
+    select, input[type="text"], input[type="password"], input[type="number"], textarea { font-size: 16px; }
+    #planCard { left: 12px; right: 12px; width: auto; top: 8px; }
+  }
 </style>
 </head>
 <body>
@@ -922,6 +1016,18 @@
       <label class="check"><input type="checkbox" id="reflectChk"> Reflection pass — before finishing, the agent reviews and fixes its own work</label>
       <label class="check"><input type="checkbox" id="confirmWrites"> Confirm before writing/deleting files</label>
 
+      <label class="field">Approval mode <span class="muted" style="font-size:11px">(read-only sandbox / ask / auto; per-tool rules override)</span>
+        <select id="apprModeSel">
+          <option value="read-only">Read-only — every write blocked</option>
+          <option value="ask" selected>Ask — writes confirm first</option>
+          <option value="auto">Auto — everything runs</option>
+        </select>
+      </label>
+      <div class="row" style="margin-bottom:10px">
+        <button id="btnPerms" style="flex:1">Per-tool rules…</button>
+        <button id="btnResetRules" style="flex:1">Reset rules</button>
+      </div>
+
       <label class="field">Max agent steps
         <input type="number" id="maxSteps" min="1" max="100" step="1" value="10">
       </label>
@@ -964,16 +1070,33 @@
     <div class="side-section">
       <p class="side-title">Sessions</p>
       <div class="row" style="margin-bottom:8px">
-        <button id="btnNewSession">＋ New Chat</button>
+        <button id="btnNewSession"><svg class="icn" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> New Chat</button>
       </div>
       <div id="sessionList"></div>
     </div>
 
     <div class="side-section">
+      <p class="side-title">Memory</p>
+      <div id="memCount" class="muted" style="font-size:11px;margin-bottom:8px">No notes stored yet.</div>
+      <div class="row" style="margin-bottom:4px">
+        <button id="btnMemOpen" style="flex:1">Open</button>
+        <button id="btnMemAdd" style="flex:1">Add note</button>
+      </div>
+    </div>
+
+    <div class="side-section">
+      <p class="side-title">Event Log &amp; Approvals</p>
+      <div class="row" style="margin-bottom:4px">
+        <button id="btnEventLog" style="flex:1">Event log</button>
+        <button id="btnPermsSide" style="flex:1">Approvals</button>
+      </div>
+    </div>
+
+    <div class="side-section">
       <p class="side-title">Workspace</p>
       <div class="row" style="margin-bottom:8px">
-        <button id="btnMount">📁 Mount Folder</button>
-        <button id="btnUnmount" style="display:none">✕ Unmount</button>
+        <button id="btnMount"><svg class="icn" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> Mount Folder</button>
+        <button id="btnUnmount" style="display:none"><svg class="icn" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg> Unmount</button>
       </div>
       <div id="mountInfo" class="muted">No folder mounted. Mount a folder to enable list_files / read_file / edit_file / write_file / delete_file / repo_map tools.</div>
       <div id="fileTree" style="margin-top:8px"></div>
@@ -982,34 +1105,39 @@
 
   <main id="main">
     <div id="topbar">
-      <button id="btnToggleSide" title="Toggle sidebar">☰</button>
+      <button id="btnToggleSide" title="Toggle sidebar (Ctrl+B)"><svg class="icn" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
       <span id="providerBadge" class="zai">Z.ai Coding Plan</span>
       <select id="modeSel" style="width:auto" title="Code mode: full tool access. Ask mode: read-only chat, no tools.">
-        <option value="code">⚙ Code</option>
-        <option value="ask">💬 Ask</option>
+        <option value="code">Code — full tool access</option>
+        <option value="ask">Ask — read-only chat</option>
       </select>
       <span id="stepBadge"></span>
       <span class="spacer"></span>
-      <button id="btnStop" class="danger" style="display:none">■ Stop Agent</button>
+      <button id="btnStop" class="danger" style="display:none"><svg class="icn" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg> Stop</button>
+      <button id="btnPause" style="display:none" title="Pause the turn — resume later exactly where it stopped"><svg class="icn" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="5" width="3" height="14" rx="1"/><rect x="14" y="5" width="3" height="14" rx="1"/></svg> Pause</button>
       <select id="checkpointSel" style="display:none;width:auto;max-width:200px" title="File checkpoints (snapshot before each AI write)"></select>
-      <button id="btnRestore" style="display:none" title="Restore the selected checkpoint">↺ Restore</button>
-      <button id="btnTerm">⌨ Terminal</button>
-      <button id="btnExport">⬇ Export JSON</button>
-      <button id="btnClear">🗑 Clear Chat</button>
+      <button id="btnRestore" style="display:none" title="Restore the selected checkpoint"><svg class="icn" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 4v6h6M3.5 15a9 9 0 1 0 2.1-9.4L1 10"/></svg> Restore</button>
+      <button id="btnTerm"><svg class="icn" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7l5 5-5 5M12 17h7"/></svg> Terminal</button>
+      <button id="btnExport"><svg class="icn" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11M7 10l5 5 5-5M4 19h16"/></svg> Export</button>
+      <button id="btnClear"><svg class="icn" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg> Clear</button>
     </div>
     <div id="chat"></div>
     <div id="composer">
+      <div id="turnBar" style="display:none">
+        <button id="btnResumeTurn" style="display:none" title="Continue the paused turn from where it stopped"><svg class="icn" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg> Resume</button>
+        <button id="btnRetryTurn" style="display:none" title="Re-run the last user message from scratch"><svg class="icn" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 4v6h6M3.5 15a9 9 0 1 0 2.1-9.4L1 10"/></svg> Retry turn</button>
+      </div>
       <div id="composerInner">
         <textarea id="input" placeholder="Ask the agent to code, search, or edit your mounted folder… (Enter to send, Shift+Enter for newline)"></textarea>
         <button id="btnSend" class="primary">Send ▸</button>
       </div>
-      <div id="hint">Agent loop: streams SSE · executes tools locally · loops until done or Max Steps · slash commands: /help /map /undo /mode /model /export /clear</div>
+      <div id="hint">Agent loop: streams SSE · executes tools locally · loops until done or Max Steps · slash commands: /help /map /undo /mode /model /memory /plan /journal /search /events /permissions /export /clear</div>
     </div>
   </main>
 </div>
 
 <dialog id="previewDialog">
-  <div class="dlg-head"><span id="previewTitle">Live HTML Preview</span><span class="spacer"></span><button class="small" onclick="document.getElementById('previewDialog').close()">✕ Close</button></div>
+  <div class="dlg-head"><span id="previewTitle">Live HTML Preview</span><span class="spacer"></span><button class="small" onclick="document.getElementById('previewDialog').close()"><svg class="icn" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg> Close</button></div>
   <div class="dlg-body"><iframe id="previewFrame" sandbox="allow-scripts"></iframe></div>
 </dialog>
 
@@ -1023,7 +1151,7 @@
 </dialog>
 
 <dialog id="fileViewDialog">
-  <div class="dlg-head"><span id="fileViewTitle">File</span><span class="spacer"></span><button class="small" onclick="document.getElementById('fileViewDialog').close()">✕ Close</button></div>
+  <div class="dlg-head"><span id="fileViewTitle">File</span><span class="spacer"></span><button class="small" onclick="document.getElementById('fileViewDialog').close()"><svg class="icn" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg> Close</button></div>
   <div class="dlg-body"><pre id="fileViewPre" style="margin:0;font-family:var(--mono);font-size:12px;white-space:pre-wrap"></pre></div>
 </dialog>
 
@@ -1032,7 +1160,7 @@
     <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
     <span id="termTitle">ghostty — glm-agent</span>
     <span class="spacer"></span>
-    <button id="termClose" title="Close terminal (Ctrl+`)">✕</button>
+    <button id="termClose" title="Close terminal (Ctrl+`)"><svg class="icn" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   <div id="termScroll"><div id="termScreen"></div></div>
 </div>
@@ -1040,6 +1168,54 @@
 
 <script>
 "use strict";
+
+/* ============================== SVG icon system (no emojis) ============================== */
+const ICONS = {
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  menu: '<path d="M3 6h18M3 12h18M3 18h18"/>',
+  folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  download: '<path d="M12 3v11M7 10l5 5 5-5M4 19h16"/>',
+  trash: '<path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/>',
+  terminal: '<path d="M5 7l5 5-5 5M12 17h7"/>',
+  trace: '<path d="M3 12h4l3 7 4-14 3 7h4"/>',
+  tool: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  ret: '<path d="M9 10l-5 5 5 5M20 4v7a4 4 0 0 1-4 4H4"/>',
+  cpu: '<rect x="5" y="5" width="14" height="14" rx="2"/><rect x="10" y="10" width="4" height="4"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/>',
+  clip: '<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+  mic: '<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"/>',
+  bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M10.3 21a2 2 0 0 0 3.4 0"/>',
+  bellOff: '<path d="M13.7 21a2 2 0 0 1-3.4 0M18.6 13A18 18 0 0 1 18 8a6 6 0 0 0-9.3-5M6.3 6.3A6 6 0 0 0 6 8c0 7-3 9-3 9h14"/><path d="M1 1l22 22"/>',
+  edit: '<path d="M17 3a2.83 2.83 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5z"/>',
+  fork: '<path d="M6 3v12M18 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 9a9 9 0 0 1-9 9"/>',
+  arrowDown: '<path d="M12 5v14M19 12l-7 7-7-7"/>',
+  arrowUp: '<path d="M12 19V5M5 12l7-7 7 7"/>',
+  stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
+  pause: '<rect x="7" y="5" width="3" height="14" rx="1"/><rect x="14" y="5" width="3" height="14" rx="1"/>',
+  resume: '<path d="M6 4l14 8-14 8z"/>',
+  restore: '<path d="M1 4v6h6M3.5 15a9 9 0 1 0 2.1-9.4L1 10"/>',
+  send: '<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>',
+  warn: '<path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+  book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>',
+  list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+  journal: '<path d="M4 22h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H4v20zM4 22V2M8 7h8M8 11h8"/>',
+  shield: '<path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/>',
+  check: '<path d="M20 6L9 17l-5-5"/>',
+  circle: '<circle cx="12" cy="12" r="8"/>',
+  refresh: '<path d="M23 4v6h-6M1 20v-6h6M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/>',
+  chevDown: '<path d="M6 9l6 6 6-6"/>'
+};
+function icon(name) { return '<svg class="icn" viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[name] || ICONS.x) + "</svg>"; }
+function iconEl(name) { const sp = document.createElement("span"); sp.innerHTML = icon(name); return sp.firstChild; }
+function toolIcon(name) {
+  if (/^(web_search|search_workspace)$/.test(name)) return "search";
+  if (/^(write_file|edit_file|delete_file|run_javascript|restore_checkpoint|revert_commit)$/.test(name)) return "tool";
+  if (/^(memory|list_journal)$/.test(name)) return "book";
+  if (/^update_plan$/.test(name)) return "list";
+  if (/^http_fetch$|^read_file$|^list_files$|^repo_map$|^list_checkpoints$/.test(name)) return "folder";
+  return "tool";
+}
 
 /* ============================== State & persistence ============================== */
 
@@ -1647,6 +1823,48 @@ function toolSchemas() {
       }
     }
   ];
+  schemas.push(
+    {
+      type: "function",
+      function: {
+        name: "memory",
+        description: "Persistent memory the user shares across ALL future sessions (injected into every turn automatically): op=store to save durable user preferences/facts/decisions, op=list to see all notes, op=recall with query for keyword search, op=forget (by id, by text match, or all).",
+        parameters: { type: "object", properties: { op: { type: "string", enum: ["store", "list", "recall", "forget"], description: "Memory operation (default list)" }, text: { type: "string", description: "Note text (store) or text match (forget)" }, query: { type: "string", description: "Keyword query (recall)" }, id: { type: "string", description: "Note id (forget)" } }, required: [] }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "search_workspace",
+        description: "Keyword search (BM25) over the mounted workspace files (or terminal VFS), LlamaIndex-style: chunks files into passages and returns the top-k most relevant snippets. Prefer this over reading whole large files.",
+        parameters: { type: "object", properties: { query: { type: "string", description: "Search query" }, k: { type: "number", description: "Max results (default 6)" } }, required: ["query"] }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "update_plan",
+        description: "Maintain the user-visible task plan (OpenHands-style), shown live in a tracking panel. When beginning a multi-step task, first call update_plan with the full step list, then keep statuses current (in_progress for the active step, done when finished).",
+        parameters: { type: "object", properties: { steps: { type: "array", description: "Full step list (replaces the previous plan)", items: { type: "object", properties: { text: { type: "string" }, status: { type: "string", enum: ["pending", "in_progress", "done"] } }, required: ["text", "status"] } }, note: { type: "string", description: "Optional short progress note" } }, required: ["steps"] }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "list_journal",
+        description: "List the aider-style commit journal: ids (hashes) of previous workspace edit batches with labels and affected files.",
+        parameters: { type: "object", properties: {}, required: [] }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "revert_commit",
+        description: "Revert a journal commit by its id (from list_journal): undoes that whole batch of file changes.",
+        parameters: { type: "object", properties: { id: { type: "string", description: "Commit id from list_journal" } }, required: ["id"] }
+      }
+    }
+  );
   if (rootHandle) {
     schemas.unshift(
       {
@@ -1741,7 +1959,7 @@ async function executeTool(name, argsJson) {
         const val = validateSyntax(args.path, args.content);
         if (cfg.confirmWrites) {
           const title = old === null ? "Create file: " + args.path : "Overwrite file: " + args.path;
-          const valHtml = val.msg ? '<p style="color:' + (val.level === "error" ? "#ff453a" : "#ffd60a") + '">⚠ ' + escapeHtml(val.msg) + "</p>" : "";
+          const valHtml = val.msg ? '<p style="color:' + (val.level === "error" ? "#ff453a" : "#ffd60a") + '">' + icon("warn") + " " + escapeHtml(val.msg) + "</p>" : "";
           const ok = await confirmAction(title, valHtml + diffHtml(old, args.content), val.level === "error" ? "Write anyway" : "Confirm");
           if (!ok) return JSON.stringify({ result: "User CANCELLED the write to " + args.path + (val.level === "error" ? " (syntax validation failed: " + val.msg + ")" : "") + ". Do not retry the same write; ask the user what to change." });
         }
@@ -1791,8 +2009,8 @@ async function executeTool(name, argsJson) {
           newContent = fz.content; how = "fuzzy (whitespace-insensitive line match)";
         }
         const val = validateSyntax(args.path, newContent);
-        if (cfg.confirmWrites) {
-          const valHtml = val.msg ? '<p style="color:' + (val.level === "error" ? "#ff453a" : "#ffd60a") + '">⚠ ' + escapeHtml(val.msg) + "</p>" : "";
+        if (cfg.confirmWrites && hwPermit("edit_file") === "ask") {
+          const valHtml = val.msg ? '<p style="color:' + (val.level === "error" ? "#ff453a" : "#ffd60a") + '">' + icon("warn") + " " + escapeHtml(val.msg) + "</p>" : "";
           const ok = await confirmAction("Edit file: " + args.path + " (" + how + ")", valHtml + diffHtml(oldText, newContent), val.level === "error" ? "Write anyway" : "Confirm");
           if (!ok) return JSON.stringify({ result: "User CANCELLED the edit to " + args.path + ". Ask the user what to change." });
         }
@@ -1836,6 +2054,24 @@ async function executeTool(name, argsJson) {
         } catch (e) {
           return JSON.stringify({ error: "Fetch failed (many sites block browser CORS): " + String(e && e.message || e) });
         } finally { clearTimeout(timer); }
+      }
+      case "memory": return hwMemoryTool(args);
+      case "search_workspace": {
+        if (!args.query) return JSON.stringify({ error: "Missing query" });
+        return JSON.stringify(await hwSearchWorkspace(args.query, parseInt(args.k, 10) || 6));
+      }
+      case "update_plan": return hwPlanTool(args);
+      case "list_journal": {
+        const j = loadJournal();
+        return JSON.stringify({ commits: j.map(e => ({ id: e.id, ts: new Date(e.ts).toISOString(), label: e.label, files: e.affected })) });
+      }
+      case "revert_commit": {
+        if (!args.id) return JSON.stringify({ error: "Missing commit id (get one from list_journal)" });
+        if (cfg.confirmWrites && hwPermit("revert_commit") === "ask") {
+          const ok = await confirmAction("Revert journal commit " + args.id + "?", "<p class='muted'>This restores the files touched by that commit to their previous state.</p>", "Revert");
+          if (!ok) return JSON.stringify({ result: "User CANCELLED the revert." });
+        }
+        return await hwRevertCommit(args.id);
       }
       default:
         return JSON.stringify({ error: "Unknown tool: " + name });
@@ -1902,6 +2138,7 @@ const MAX_CHECKPOINTS = 20;
 function pushCheckpoint(label, changes) {
   checkpoints.unshift({ ts: Date.now(), label: label, changes: changes });
   if (checkpoints.length > MAX_CHECKPOINTS) checkpoints.length = MAX_CHECKPOINTS;
+  journalCommit(label, changes);
   renderCheckpoints();
 }
 
@@ -1980,6 +2217,8 @@ function endpointUrl() {
 function wireMessages() {
   const sys = els.systemPrompt.value || cfg.systemPrompt;
   const out = [{ role: "system", content: sys }];
+  const __hwCtx = hwContextBlock();
+  if (__hwCtx) out[0].content += "\n\n" + __hwCtx;
   for (const m of messages) {
     const copy = { role: m.role, content: m.content };
     if (m.role === "assistant" && m.tool_calls) copy.tool_calls = m.tool_calls;
@@ -2236,7 +2475,7 @@ function renderAssistantShell() {
   wrap.appendChild(el("div", "who", "Assistant · " + currentModel()));
   const trace = el("details", "trace");
   trace.style.display = "none";
-  trace.appendChild(el("summary", null, "Reasoning Trace"));
+  const __tsum = document.createElement("summary"); __tsum.innerHTML = icon("trace") + "<span>Reasoning Trace</span>"; trace.appendChild(__tsum);
   const traceBody = el("div", "trace-body");
   trace.appendChild(traceBody);
   const bubble = el("div", "bubble");
@@ -2249,7 +2488,7 @@ function renderAssistantShell() {
 
 function renderToolCard(kind, name, payload, isError) {
   const card = el("details", "tool-card " + kind + (isError ? " err" : ""));
-  const sum = el("summary", null, kind === "call" ? ("Tool call · " + name) : ("Tool result · " + name));
+  const sum = document.createElement("summary"); sum.innerHTML = icon(kind === "call" ? toolIcon(name) : "ret") + "<span>" + escapeHtml(kind === "call" ? ("Tool call · " + name) : ("Tool result · " + name)) + "</span>";
   card.appendChild(sum);
   const body = el("div", "tool-body");
   const code = el("code");
@@ -2271,6 +2510,7 @@ function renderHistory() {
   chatEl.innerHTML = "";
   for (let __mi = 0; __mi < messages.length; __mi++) {
     const m = messages[__mi];
+    if (m.silent) continue;
     if (m.role === "user") {
       renderUserMsg(m.content, m.images, __mi);
     } else if (m.role === "assistant") {
@@ -2296,19 +2536,30 @@ function renderHistory() {
 function setRunning(v) {
   running = v;
   els.btnSend.disabled = v;
-  els.btnSend.textContent = v ? "Running…" : "Send ▸";
+  els.btnSend.innerHTML = v ? "Running…" : icon("send") + "<span>Send</span>";
   els.btnStop.style.display = v ? "" : "none";
+  const __pb = $("btnPause"); if (__pb) __pb.style.display = v ? "" : "none";
   if (!v) els.stepBadge.textContent = "";
+  if (!v) refreshTurnBar();
 }
 
-async function runAgent(userText) {
-  const userMsg = { role: "user", content: userText };
-  if (typeof takeAttachments === "function") {
-    const imgs = takeAttachments();
-    if (imgs.length) userMsg.images = imgs;
+async function runAgent(userText, opts) {
+  opts = opts || {};
+  if (opts.resume) {
+    pausedFlag = false;
+    const lm = loadLive();
+    messages.push({ role: "user", content: RESUME_NOTE, silent: true });
+    renderSysNote("Resuming turn" + (lm && lm.reason ? " — " + lm.reason : "") + "…");
+  } else if (!opts.skipUser) {
+    const userMsg = { role: "user", content: userText };
+    if (typeof takeAttachments === "function") {
+      const imgs = takeAttachments();
+      if (imgs.length) userMsg.images = imgs;
+    }
+    messages.push(userMsg);
+    renderUserMsg(userText, userMsg.images || null, messages.length - 1);
   }
-  messages.push(userMsg);
-  renderUserMsg(userText, userMsg.images || null, messages.length - 1);
+  persistLive(opts.resume ? "resumed turn" : "turn started");
   saveHistory();
 
   let maxSteps = cfg.maxSteps;
@@ -2374,13 +2625,17 @@ async function runAgent(userText) {
     if (!toolCalls.length) {
       if (cfg.reflect && !reflected && cfg.mode !== "ask") {
         reflected = true;
-        renderSysNote("🔁 Reflection pass: the agent is reviewing its own work…");
+        renderSysNote("Reflection pass: the agent is reviewing its own work…");
         messages.push({ role: "user", content: "Reflection pass: review the work you did above for bugs, missing pieces, or unverified claims. If something needs fixing, use tools to fix or verify it now. If everything is complete and correct, reply with a one-paragraph final summary and call no tools." });
         saveHistory();
         continue;
       }
       if (typeof enhNotify === "function") enhNotify("Agent finished", (live || "").slice(0, 140));
       renderHistory();
+      turnEndedAbnormal = false;
+      clearLive();
+      evLog("turn/end", "done · " + step + " step" + (step > 1 ? "s" : ""));
+      refreshTurnBar();
       els.stepBadge.textContent = "done · " + step + " step" + (step > 1 ? "s" : "");
       setTimeout(() => { els.stepBadge.textContent = ""; }, 4000);
       return;
@@ -2403,15 +2658,23 @@ async function runAgent(userText) {
     }
 
     if (step === maxSteps && cfg.autoContinue && maxSteps - cfg.maxSteps < 30) {
-      renderSysNote("⚠ Max steps (" + maxSteps + ") reached — auto-continuing with a continuation nudge. Press Stop to end.");
+      renderSysNote("Max steps (" + maxSteps + ") reached — auto-continuing with a continuation nudge. Press Stop to end.");
       messages.push({ role: "user", content: "Continue the task from where you left off. If it is fully complete, reply with a final summary and call no more tools." });
       maxSteps += 5;
     } else if (step === maxSteps) {
-      renderSysNote("⚠ Hard step limit reached. Agent paused.");
+      renderSysNote("Hard step limit reached. Agent paused.");
+      turnEndedAbnormal = true;
+      persistLive("step limit");
+      evLog("turn/end", "step limit");
+      refreshTurnBar();
       return;
     }
   }
-  renderSysNote("⚠ Hard step limit reached. Agent paused.");
+  renderSysNote("Hard step limit reached. Agent paused.");
+  turnEndedAbnormal = true;
+  persistLive("step limit");
+  evLog("turn/end", "step limit");
+  refreshTurnBar();
 }
 
 /* ============================== Send / stop / top bar ============================== */
@@ -2424,13 +2687,18 @@ async function onSend() {
   if (!currentKey()) { toast("Enter an API key for the active provider first", true); return; }
   inputEl.value = "";
   inputEl.style.height = "auto";
+  clearLive();
+  turnEndedAbnormal = false;
   abortCtl = new AbortController();
   setRunning(true);
   try {
     await runAgent(text);
   } catch (e) {
-    if (e.name === "AbortError") renderSysNote("■ Agent stopped by user");
-    else { renderSysNote("✕ Error: " + e.message); toast(e.message, true); }
+    if (e.name === "AbortError") {
+      if (pausedFlag) { turnEndedAbnormal = false; evLog("turn/end", "paused"); renderSysNote("■ Turn paused — press Resume Turn to continue."); }
+      else { turnEndedAbnormal = true; clearLive(); evLog("turn/end", "cancelled by user"); renderSysNote("■ Agent stopped by user"); }
+    }
+    else { turnEndedAbnormal = false; evLog("turn/end", "failed: " + e.message); renderSysNote("✕ Error: " + e.message); toast(e.message, true); }
   } finally {
     setRunning(false);
     abortCtl = null;
@@ -2564,7 +2832,7 @@ async function handleSlash(text) {
   const rest = parts.slice(1).join(" ").trim();
   switch (cmd) {
     case "help":
-      renderSysNote("/help · /map · /checkpoints · /undo · /mode [code|ask] · /model <id> · /export · /exportmd · /copy · /tokens · /snips · /notify · /shortcuts · /clear");
+      renderSysNote("/help · /map · /checkpoints · /undo · /mode [code|ask] · /model <id> · /export · /exportmd · /copy · /tokens · /snips · /notify · /shortcuts · /memory · /plan [clear] · /journal [revert <id>] · /search <q> · /events · /permissions · /clear");
       break;
     case "map":
       if (!rootHandle) { toast("Mount a folder first", true); break; }
@@ -2616,6 +2884,34 @@ async function handleSlash(text) {
       break;
     case "tokens":
       renderSysNote("Estimated tokens in session: " + enhSessionTokens().toLocaleString() + (Wasm.ok ? " (WASM estimator)" : " (JS fallback — WASM core unavailable)"));
+      break;
+    case "memory":
+      openMemory();
+      break;
+    case "plan":
+      if (rest === "clear") { savePlan({ steps: [], note: "" }); renderPlan(); renderSysNote("Plan cleared."); break; }
+      {
+        const pc = $("planCard");
+        if (pc && pc.style.display !== "none") pc.style.display = "none";
+        else renderPlan();
+      }
+      break;
+    case "journal":
+      if (rest.indexOf("revert") === 0) {
+        renderToolCard("result", "revert_commit", await executeTool("revert_commit", JSON.stringify({ id: rest.split(/\s+/)[1] || "" })));
+      } else {
+        renderToolCard("result", "list_journal", JSON.stringify(loadJournal().map(e => ({ id: e.id, ts: new Date(e.ts).toISOString(), label: e.label, files: e.affected })), null, 2));
+      }
+      break;
+    case "search":
+      if (!rest) { toast("Usage: /search <query> — BM25 over mounted files / VFS", true); break; }
+      renderToolCard("result", "search_workspace", await executeTool("search_workspace", JSON.stringify({ query: rest, k: 6 })));
+      break;
+    case "events":
+      openEventLog();
+      break;
+    case "permissions": case "approvals":
+      openPermissions();
       break;
     default:
       toast("Unknown command: /" + cmd + " — try /help", true);
@@ -3575,7 +3871,7 @@ function enhInitWasmBadge() {
 function updateWasmBadge() {
   const b = $("wasmBadge");
   if (!b) return;
-  b.textContent = Wasm.ok ? "⚙ WASM" : "⚙ JS";
+  b.innerHTML = icon("cpu") + "<span> " + (Wasm.ok ? "WASM" : "JS") + "</span>";
   b.className = Wasm.ok ? "ok" : "fb";
   if (Wasm.ok) b.title += " — ACTIVE";
 }
@@ -3593,7 +3889,7 @@ function enhWireComposerLint() {
       if (r === 0) elx.textContent = "✓ balanced";
       else if (r === -1) { elx.textContent = "✓ balanced"; }
       else if (r <= -1000) { elx.textContent = "… " + (-r - 1000) + " unclosed"; return; }
-      else elx.textContent = "⚠ unbalanced near char " + r;
+      else elx.textContent = "Unbalanced near char " + r;
     }, 350);
   });
 }
@@ -3608,7 +3904,7 @@ function enhWireAutoScroll() {
   }, { passive: true });
   const pill = document.createElement("button");
   pill.id = "jumpPill";
-  pill.textContent = "↓ Jump to latest";
+  pill.innerHTML = icon("arrowDown") + "<span> Jump to latest</span>";
   pill.style.display = "none";
   pill.addEventListener("click", () => { stickBottom = true; chatEl.scrollTop = chatEl.scrollHeight; });
   $("main").appendChild(pill);
@@ -3710,6 +4006,11 @@ function enhPaletteEntries() {
     { label: "/checkpoints", hint: "list", run: () => enhDoSlash("/checkpoints") },
     { label: "/undo — latest checkpoint", hint: "danger", run: () => enhDoSlash("/undo") },
     { label: "Keyboard shortcuts", hint: "ctrl+/", run: () => openShortcuts() },
+    { label: "Memory library", hint: "notes", run: () => openMemory() },
+    { label: "Toggle plan panel", hint: "plan", run: () => { const pc = $("planCard"); if (pc && pc.style.display !== "none") { pc.style.display = "none"; } else renderPlan(); } },
+    { label: "Commit journal", hint: "journal", run: () => { handleSlash("/journal"); } },
+    { label: "Event log", hint: "log", run: () => openEventLog() },
+    { label: "Tool approvals", hint: "policy", run: () => openPermissions() },
     { label: "Clear chat", hint: "danger", run: () => els.btnClear.click() }
   ].concat(themes);
 }
@@ -3870,11 +4171,11 @@ function openPromptLibrary() {
       run: () => { inputEl.value = (inputEl.value ? inputEl.value + "\n" : "") + s.text; inputEl.focus(); toast("Inserted: " + s.name); }
     }));
     return snips.concat([
-      { label: "＋ Save composer text as snippet…", hint: "create", run: () => { saveSnippetFromComposer(entries); } },
-      { label: "🗑 Delete a snippet…", hint: "delete", run: () => { deleteSnippet(entries); } }
+      { label: "Save composer text as snippet…", hint: "create", run: () => { saveSnippetFromComposer(entries); } },
+      { label: "Delete a snippet…", hint: "delete", run: () => { deleteSnippet(entries); } }
     ]);
   }
-  function rerender() { q.value = q.value; palRender(list, "", entries(), (en) => { en.run(); if (!en.label.startsWith("＋") && !en.label.startsWith("🗑")) rerenderAfter(); }); }
+  function rerender() { q.value = q.value; palRender(list, "", entries(), (en) => { en.run(); if (en.hint !== "create" && en.hint !== "delete") rerenderAfter(); }); }
   function rerenderAfter() { setTimeout(() => { if (d.open) { palRender(list, "", entries(), (en) => en.run()); rerenderAfter2(); } }, 150); }
   function rerenderAfter2() { if (d.open) { palRender(list, "", entries(), (en) => en.run()); } }
   q.oninput = () => palRender(list, q.value.trim(), entries(), (en) => en.run());
@@ -3965,13 +4266,13 @@ function enhWireAttachments() {
   fileInput.id = "imgInput";
   c.appendChild(fileInput);
   const clip = document.createElement("button");
-  clip.className = "small enh-btn"; clip.textContent = "📎"; clip.title = "Attach images (vision)";
+  clip.className = "small enh-btn"; clip.innerHTML = icon("clip"); clip.title = "Attach images (vision)";
   clip.addEventListener("click", () => fileInput.click());
   fileInput.addEventListener("change", () => { for (const f of fileInput.files) addImageAttachment(f); fileInput.value = ""; });
   inner.appendChild(clip);
 
   const mic = document.createElement("button");
-  mic.className = "small enh-btn"; mic.textContent = "🎤"; mic.title = "Voice dictation";
+  mic.className = "small enh-btn"; mic.innerHTML = icon("mic"); mic.title = "Voice dictation";
   mic.id = "btnMic";
   inner.appendChild(mic);
   let recog = null, recOn = false;
@@ -4016,7 +4317,7 @@ function enhMsgActions(wrap, index) {
   const actions = document.createElement("span");
   actions.className = "msg-actions";
   const edit = document.createElement("button");
-  edit.className = "small"; edit.textContent = "✎"; edit.title = "Edit & regenerate from here";
+  edit.className = "small"; edit.innerHTML = icon("edit"); edit.title = "Edit & regenerate from here";
   edit.addEventListener("click", () => {
     if (running) { toast("Stop the agent first", true); return; }
     messages.splice(index);
@@ -4027,7 +4328,7 @@ function enhMsgActions(wrap, index) {
     inputEl.focus();
   });
   const fork = document.createElement("button");
-  fork.className = "small"; fork.textContent = "⑂"; fork.title = "Fork conversation into a new session from here";
+  fork.className = "small"; fork.innerHTML = icon("fork"); fork.title = "Fork conversation into a new session from here";
   fork.addEventListener("click", () => {
     if (running) { toast("Stop the agent first", true); return; }
     saveHistory();
@@ -4052,10 +4353,10 @@ function chatToMarkdown() {
   const lines = ["# GLM Agent Harness — conversation export", "", "_Model: `" + currentModel() + "` · Provider: `" + cfg.provider + "` · " + new Date().toLocaleString() + "_", ""];
   for (const m of messages) {
     if (m.role === "user") {
-      lines.push("## 🧑 You", "", m.content, "");
+      lines.push("## User", "", m.content, "");
       if (m.images && m.images.length) lines.push("_(" + m.images.length + " image attachment(s))_", "");
     } else if (m.role === "assistant") {
-      lines.push("## 🤖 Assistant" + (m.tool_calls ? " _(tool use: " + m.tool_calls.map(t => t.function.name).join(", ") + ")_" : ""), "");
+      lines.push("## Assistant" + (m.tool_calls ? " _(tool use: " + m.tool_calls.map(t => t.function.name).join(", ") + ")_" : ""), "");
       if (m.reasoning) lines.push("<details><summary>Reasoning</summary>", "", m.reasoning.split("\n").map(l => "> " + l).join("\n"), "", "</details>", "");
       if (m.content) lines.push(m.content, "");
     } else if (m.role === "tool") {
@@ -4092,7 +4393,7 @@ function toggleNotify() {
 function persistNotify() { try { localStorage.setItem("glmagent.notify.v1", notifyOn ? "1" : "0"); } catch (e) {} updateNotifyBtn(); }
 function updateNotifyBtn() {
   const b = $("btnNotify");
-  if (b) { b.textContent = notifyOn ? "🔔" : "🔕"; b.title = "Desktop notification when the agent finishes (" + (notifyOn ? "on" : "off") + ")"; }
+  if (b) { b.innerHTML = icon(notifyOn ? "bell" : "bellOff"); b.title = "Desktop notification when the agent finishes (" + (notifyOn ? "on" : "off") + ")"; }
 }
 
 /* ============================== Global keyboard shortcuts ============================== */
@@ -4138,7 +4439,7 @@ function updateMsgActionIndex() {
     for (const m of messages) if (m.role === "user") mi++;
     let ui = -1;
     for (let i = 0, idx = 0; i < messages.length; i++) {
-      if (messages[i].role !== "user") continue;
+      if (messages[i].role !== "user" || messages[i].silent) continue;
       ui++;
       const wrap = users[ui];
       if (wrap) enhMsgActions(wrap, idx);
@@ -4149,6 +4450,481 @@ function updateMsgActionIndex() {
 
 /* ============================== Init ============================== */
 
+/* ============================== Ported from CartyChris/harness-wasm: policies, event log, secrets, pause/resume ============================== */
+/* Codex-style approval modes + opencode per-tool rules (port of crates/core/permissions.rs) */
+const HW_WRITE_TOOLS = { write_file: 1, edit_file: 1, delete_file: 1, restore_checkpoint: 1, revert_commit: 1 };
+function hwLoadPerms() { try { return JSON.parse(localStorage.getItem("glmagent.perms.v1")) || null; } catch (e) { return null; } }
+function hwSavePerms(p) { try { localStorage.setItem("glmagent.perms.v1", JSON.stringify(p)); } catch (e) {} }
+let hwPerms = hwLoadPerms() || { mode: "ask", rules: {} };
+function hwPermit(name) {
+  if (hwPerms.mode === "read-only" && HW_WRITE_TOOLS[name]) return "deny";
+  const r = hwPerms.rules[name];
+  if (r) return r;
+  if (HW_WRITE_TOOLS[name]) return hwPerms.mode === "auto" ? "allow" : (cfg.confirmWrites ? "ask" : "allow");
+  return "allow";
+}
+let hwConfirmAlways = false;
+let hwLastConfirm = null;
+function syncPermsUi() { const am = $("apprModeSel"); if (am && am.value !== hwPerms.mode) am.value = hwPerms.mode; }
+
+/* Secrets redaction (port of crates/core/secrets.rs) */
+const HW_ENV_NAMES = ["openrouter_api_key", "zai_api_key", "harness_access_token", "anthropic_api_key", "openai_api_key", "moonshot_api_key", "deepseek_api_key", "github_token"];
+function hwRunLen(t, from) { let n = 0; while (from + n < t.length && /[A-Za-z0-9_.\-]/.test(t[from + n])) n++; return n; }
+function redactSecrets(text) {
+  if (typeof text !== "string" || text.length < 12) return text;
+  const lower = text.toLowerCase();
+  const spans = [];
+  const PRE = [["sk-or-", 8], ["bearer ", 20]];
+  for (const pre of PRE) {
+    let from = 0;
+    for (;;) {
+      const i = lower.indexOf(pre[0], from);
+      if (i < 0) break;
+      from = i + pre[0].length;
+      const run = hwRunLen(text, from);
+      if (run >= pre[1]) spans.push([from, from + run]);
+    }
+  }
+  for (const name of HW_ENV_NAMES) {
+    let from = 0;
+    for (;;) {
+      const i = lower.indexOf(name, from);
+      if (i < 0) break;
+      from = i + name.length;
+      let j = i + name.length;
+      while (j < text.length && /["' \\\/]/.test(text[j])) j++;
+      if (j < text.length && (text[j] === "=" || text[j] === ":")) {
+        j++;
+        while (j < text.length && /["' \\\/]/.test(text[j])) j++;
+        const run = hwRunLen(text, j);
+        if (run >= 8) spans.push([j, j + run]);
+      }
+    }
+  }
+  if (!spans.length) return text;
+  spans.sort((a, b) => a[0] - b[0]);
+  let out = "", last = 0;
+  for (const sp of spans) {
+    if (sp[0] < last) continue;
+    out += text.slice(last, sp[0]) + "[redacted]";
+    last = sp[1];
+  }
+  out += text.slice(last);
+  return out;
+}
+
+/* Append-only event log (port of crates/core/events.rs — DeepSeek-harness pattern) */
+const LS_EVENTS = "glmagent.events.v1";
+let hwEvents = (() => { try { return JSON.parse(localStorage.getItem(LS_EVENTS)) || []; } catch (e) { return []; } })();
+let evSeq = hwEvents.length ? hwEvents[hwEvents.length - 1].seq : 0;
+function evLog(kind, detail) {
+  evSeq++;
+  hwEvents.push({ seq: evSeq, at: Date.now(), kind: kind, detail: String(detail == null ? "" : detail).slice(0, 220) });
+  if (hwEvents.length > 400) hwEvents = hwEvents.slice(-400);
+  try { localStorage.setItem(LS_EVENTS, JSON.stringify(hwEvents)); } catch (e) {}
+  const c = $("evCount"); if (c) c.textContent = hwEvents.length + " event" + (hwEvents.length === 1 ? "" : "s") + " logged";
+}
+function openEventLog() {
+  const d = enhMakeDialog("dlgEvents", "Event Log", false);
+  const body = d.querySelector(".dlg-body");
+  function renderList() {
+    let html = '<div style="display:flex;gap:8px;margin-bottom:6px;justify-content:flex-end"><button class="small" id="evClearB">Clear log</button></div>';
+    if (!hwEvents.length) html += '<p class="muted" style="font-size:12px">No events yet.</p>';
+    const recent = hwEvents.slice().reverse();
+    for (const ev of recent) {
+      html += '<div class="ev-item"><span class="ev-kind">' + escapeHtml(ev.kind) + '</span><span class="ev-detail">' + escapeHtml(ev.detail) + '</span><span class="ev-time">' + new Date(ev.at).toLocaleTimeString() + '</span></div>';
+    }
+    body.innerHTML = html;
+    body.querySelector("#evClearB").addEventListener("click", () => { hwEvents = []; evSeq = 0; try { localStorage.setItem(LS_EVENTS, "[]"); } catch (e) {} renderList(); });
+  }
+  renderList();
+  d.showModal();
+}
+
+/* Pause / Resume / Reload recovery (goose + harness-wasm live-turn pattern) */
+const LS_LIVE = "glmagent.live.v1";
+let pausedFlag = false;
+let turnEndedAbnormal = false;
+const RESUME_NOTE = "Continue your previous reply exactly where it stopped. Do not repeat anything you already wrote.";
+function loadLive() { try { return JSON.parse(localStorage.getItem(LS_LIVE)); } catch (e) { return null; } }
+function persistLive(reason) { try { localStorage.setItem(LS_LIVE, JSON.stringify({ sid: sessions.activeId, at: Date.now(), reason: reason || "paused" })); } catch (e) {} }
+function clearLive() { try { localStorage.removeItem(LS_LIVE); } catch (e) {} }
+function pauseAgent() {
+  if (!running || !abortCtl) return;
+  pausedFlag = true;
+  persistLive("paused by user");
+  abortCtl.abort();
+}
+function refreshTurnBar() {
+  const bar = $("turnBar"); if (!bar) return;
+  const live = loadLive();
+  const hasUser = messages.some(m => m.role === "user" && !m.silent);
+  const canResume = !running && !!live && live.sid === sessions.activeId;
+  const canRetry = !running && hasUser && turnEndedAbnormal;
+  $("btnResumeTurn").style.display = canResume ? "" : "none";
+  $("btnRetryTurn").style.display = canRetry ? "" : "none";
+  bar.style.display = (canResume || canRetry) ? "" : "none";
+}
+async function resumeAgent() {
+  if (running) return;
+  const live = loadLive();
+  if (!live) { toast("No paused turn to resume", true); return; }
+  if (live.sid !== sessions.activeId) { toast("The paused turn belongs to another session — switch sessions first", true); return; }
+  if (!currentKey()) { toast("Enter an API key for the active provider first", true); return; }
+  clearLive();
+  pausedFlag = false;
+  turnEndedAbnormal = false;
+  abortCtl = new AbortController();
+  setRunning(true);
+  evLog("turn/resume", "resumed turn");
+  try { await runAgent(null, { resume: true }); }
+  catch (e) {
+    if (e.name === "AbortError") { turnEndedAbnormal = true; evLog("turn/end", "cancelled by user"); renderSysNote("■ Agent stopped by user"); }
+    else { turnEndedAbnormal = true; evLog("turn/end", "failed: " + e.message); renderSysNote("✕ Error: " + e.message); toast(e.message, true); }
+  }
+  finally { setRunning(false); abortCtl = null; saveHistory(); }
+}
+function retryTurn() {
+  if (running) return;
+  let idx = -1;
+  for (let i = messages.length - 1; i >= 0; i--) if (messages[i].role === "user" && !messages[i].silent) { idx = i; break; }
+  if (idx < 0) { toast("Nothing to retry yet", true); return; }
+  if (!currentKey()) { toast("Enter an API key for the active provider first", true); return; }
+  messages = messages.slice(0, idx + 1);
+  saveHistory(); renderHistory();
+  clearLive(); pausedFlag = false; turnEndedAbnormal = false;
+  abortCtl = new AbortController();
+  setRunning(true);
+  evLog("turn/start", "retry of previous turn");
+  runAgent(null, { skipUser: true }).catch((e) => {
+    if (e.name === "AbortError") { turnEndedAbnormal = true; evLog("turn/end", "cancelled by user"); renderSysNote("■ Agent stopped by user"); }
+    else { turnEndedAbnormal = true; evLog("turn/end", "failed: " + e.message); renderSysNote("✕ Error: " + e.message); toast(e.message, true); }
+  }).finally(() => { setRunning(false); abortCtl = null; saveHistory(); });
+}
+
+/* MemGPT-style persistent memory */
+const LS_MEM = "glmagent.memory.v1";
+function loadMem() { try { return JSON.parse(localStorage.getItem(LS_MEM)) || []; } catch (e) { return []; } }
+function saveMem(a) { if (a.length > 100) a = a.slice(0, 100); try { localStorage.setItem(LS_MEM, JSON.stringify(a)); } catch (e) {} }
+function addMemNote(text) {
+  text = String(text || "").trim();
+  if (!text) return false;
+  const a = loadMem();
+  a.unshift({ id: "n" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), text: text.slice(0, 400), ts: Date.now() });
+  saveMem(a);
+  refreshMemUi();
+  return true;
+}
+function delMemNote(id) { saveMem(loadMem().filter(n => n.id !== id)); refreshMemUi(); }
+function refreshMemUi() {
+  const c = $("memCount");
+  if (c) { const a = loadMem(); c.textContent = a.length ? a.length + " note" + (a.length > 1 ? "s" : "") + " stored — injected into every agent turn." : "No notes stored yet."; }
+}
+function hwMemoryTool(args) {
+  const op = (args.op || "list").toLowerCase();
+  if (op === "store") {
+    const t = String(args.text || "").trim();
+    if (!t) return JSON.stringify({ error: "Missing text to store" });
+    addMemNote(t);
+    return JSON.stringify({ result: "Stored as a persistent memory note. " + loadMem().length + " note(s) now persist across sessions and are injected into every future turn." });
+  }
+  if (op === "forget") {
+    const a = loadMem();
+    if (args.id) { const b = a.filter(n => n.id !== args.id); saveMem(b); return JSON.stringify({ result: "Forgot note " + args.id, remaining: b.length }); }
+    if (args.text) { const low = args.text.toLowerCase(); const b = a.filter(n => n.text.toLowerCase().indexOf(low) < 0); saveMem(b); return JSON.stringify({ result: "Forgot " + (a.length - b.length) + " note(s) matching that text", remaining: b.length }); }
+    const count = a.length; saveMem([]);
+    return JSON.stringify({ result: "Cleared all " + count + " memory notes" });
+  }
+  const a = loadMem();
+  if (op === "recall") {
+    const terms = String(args.query || "").toLowerCase().split(/\s+/).filter(Boolean);
+    const scored = a.map(n => ({ note: n, score: terms.reduce((s, t) => s + (n.text.toLowerCase().indexOf(t) >= 0 ? 1 : 0), 0) }))
+      .filter(x => x.score > 0).sort((x, y) => y.score - x.score).slice(0, 8);
+    return JSON.stringify({ matches: scored.map(x => ({ id: x.note.id, text: x.note.text, ts: new Date(x.note.ts).toISOString() })) });
+  }
+  return JSON.stringify({ notes: a.map(n => ({ id: n.id, text: n.text, ts: new Date(n.ts).toISOString() })) });
+}
+function openMemory() {
+  const d = enhMakeDialog("dlgMemory", "Persistent Memory", false);
+  const body = d.querySelector(".dlg-body");
+  function renderList() {
+    const a = loadMem();
+    let html = '<div style="display:flex;gap:8px;margin-bottom:8px"><input type="text" id="memNew" placeholder="Store a new note…" style="flex:1"><button class="small" id="memAddB">Add</button></div>';
+    if (!a.length) html += '<p class="muted" style="font-size:12px">No notes yet. The agent can store notes with its memory tool; notes are injected into every future agent turn and survive reloads.</p>';
+    for (const n of a) {
+      html += '<div class="mem-item"><span class="mtext">' + escapeHtml(n.text) + '</span><span class="mts">' + new Date(n.ts).toLocaleDateString() + '</span><button class="small" data-mid="' + escapeHtml(n.id) + '">✕</button></div>';
+    }
+    body.innerHTML = html;
+    const inp = body.querySelector("#memNew"), addB = body.querySelector("#memAddB");
+    const doAdd = () => { if (inp.value.trim() && addMemNote(inp.value)) { inp.value = ""; renderList(); toast("Memory note added"); } };
+    addB.addEventListener("click", doAdd);
+    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") doAdd(); });
+    Array.prototype.forEach.call(body.querySelectorAll("button[data-mid]"), (b) => b.addEventListener("click", () => { delMemNote(b.getAttribute("data-mid")); renderList(); }));
+  }
+  renderList();
+  d.showModal();
+}
+
+/* OpenHands-style task plan */
+const LS_PLAN = "glmagent.plan.v1";
+function loadPlan() { try { return JSON.parse(localStorage.getItem(LS_PLAN)) || { steps: [], note: "" }; } catch (e) { return { steps: [], note: "" }; } }
+function savePlan(p) { try { localStorage.setItem(LS_PLAN, JSON.stringify(p)); } catch (e) {} }
+function renderPlan() {
+  let card = $("planCard");
+  const p = loadPlan();
+  if (!card) { card = document.createElement("div"); card.id = "planCard"; $("main").appendChild(card); }
+  if (!p.steps.length) { card.style.display = "none"; return; }
+  card.style.display = "";
+  const st = (s) => s.status === "done" ? icon("check") : (s.status === "in_progress" ? icon("refresh") : icon("circle"));
+  card.innerHTML = '<div class="plan-head">' + icon("list") + "<span>Plan</span><span class=\"spacer\"></span><button class=\"small\" id=\"planHide\">" + icon("x") + "</button></div>" +
+    p.steps.map(s => '<div class="plan-step ' + (s.status === "done" ? "done" : s.status === "in_progress" ? "active" : "") + '">' + st(s) + "<span>" + escapeHtml(s.text) + "</span></div>").join("") +
+    (p.note ? '<div class="plan-note">' + escapeHtml(p.note) + "</div>" : "");
+  $("planHide").addEventListener("click", () => { card.style.display = "none"; });
+}
+function hwPlanTool(args) {
+  if (!Array.isArray(args.steps)) return JSON.stringify({ error: "steps must be an array of {text, status}" });
+  const steps = args.steps.map(x => ({ text: String(x.text || "").slice(0, 200), status: ["pending", "in_progress", "done"].indexOf(x.status) >= 0 ? x.status : "pending" }));
+  savePlan({ steps: steps, note: String(args.note || "").slice(0, 300) });
+  renderPlan();
+  evLog("plan/update", steps.length + " step(s)");
+  return JSON.stringify({ result: "Plan updated and displayed. Keep statuses current as you make progress.", steps: steps });
+}
+
+/* Aider-style commit journal */
+const LS_JOURNAL = "glmagent.journal.v1";
+function hwFnv1a(str) { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = (h * 0x01000193) >>> 0; } return ("0000000" + h.toString(16)).slice(-8); }
+function loadJournal() { try { return JSON.parse(localStorage.getItem(LS_JOURNAL)) || []; } catch (e) { return []; } }
+function saveJournal(j) { if (j.length > 30) j.length = 30; try { localStorage.setItem(LS_JOURNAL, JSON.stringify(j)); } catch (e) {} }
+function journalCommit(label, changes) {
+  if (!Array.isArray(changes)) return;
+  const id = hwFnv1a(JSON.stringify(changes) + ":" + Date.now() + ":" + Math.random());
+  const j = loadJournal();
+  j.unshift({ id: id, ts: Date.now(), label: label, changes: changes, affected: changes.map(c => c.path) });
+  saveJournal(j);
+  evLog("journal/commit", id + " · " + label);
+}
+async function hwRevertCommit(id) {
+  const j = loadJournal();
+  const idx = j.findIndex(e => e.id === id);
+  if (idx < 0) return JSON.stringify({ error: "Unknown commit id. Call list_journal first." });
+  const entry = j[idx];
+  const errors = [];
+  for (const ch of entry.changes.slice().reverse()) {
+    try {
+      if (ch.after === null && ch.before !== null) await writeFsFile(ch.path, ch.before);
+      else if (ch.before === null && ch.after !== null) await deleteFsPath(ch.path);
+      else if (ch.before !== null && ch.after !== null) await writeFsFile(ch.path, ch.before);
+    } catch (e) { errors.push(ch.path + ": " + (e && e.message || e)); }
+  }
+  j.splice(idx, 1);
+  saveJournal(j);
+  evLog("journal/revert", id + " · " + entry.label);
+  try { await renderTree(); } catch (e) {}
+  return JSON.stringify(errors.length
+    ? { result: "Reverted " + entry.label + " with errors: " + errors.join("; ") }
+    : { result: "Reverted commit " + id + " (" + entry.label + ") — restored " + entry.changes.length + " file change(s)." });
+}
+
+/* LlamaIndex-style workspace RAG (BM25 over chunked files) */
+function hwChunk(text, size) {
+  const paras = text.split(/\n{2,}/);
+  const chunks = [];
+  let cur = "";
+  for (const p of paras) {
+    if ((cur + p).length > size && cur) { chunks.push(cur.trim()); cur = ""; }
+    cur += (cur ? "\n\n" : "") + p;
+  }
+  if (cur.trim()) chunks.push(cur.trim());
+  return chunks;
+}
+async function hwRagFiles() {
+  const out = [];
+  if (rootHandle) {
+    const files = await listFsFiles();
+    for (const p of files) {
+      if (!/\.(txt|md|markdown|js|jsx|ts|tsx|mjs|cjs|json|css|html|htm|py|rb|go|rs|java|c|cpp|h|hpp|sh|yml|yaml|toml|csv|log|sql)$/i.test(p)) continue;
+      try {
+        let t = await readFsFile(p);
+        if (t.length > 150000) t = t.slice(0, 150000);
+        out.push({ path: p, text: t });
+      } catch (e) {}
+      if (out.length >= 120) break;
+    }
+  }
+  if (!out.length && typeof T !== "undefined" && T.vfs) {
+    for (const k of Object.keys(T.vfs)) {
+      const v = T.vfs[k];
+      if (typeof v === "string") out.push({ path: k, text: v.length > 150000 ? v.slice(0, 150000) : v });
+      if (out.length >= 120) break;
+    }
+  }
+  return out;
+}
+function hwBm25Search(query, files, k) {
+  const CHUNKSZ = 800;
+  const chunks = [];
+  for (const f of files) for (const c of hwChunk(f.text, CHUNKSZ)) chunks.push({ path: f.path, text: c });
+  if (!chunks.length) return [];
+  const token = (t) => t.toLowerCase().match(/[a-z0-9_]{2,}/g) || [];
+  const docs = chunks.map(c => token(c.text));
+  const N = chunks.length;
+  const avgdl = docs.reduce((n, d) => n + d.length, 0) / N || 1;
+  const df = new Map();
+  const tf = docs.map(tokens => {
+    const m = new Map();
+    for (const t of tokens) m.set(t, (m.get(t) || 0) + 1);
+    for (const t of new Set(tokens)) df.set(t, (df.get(t) || 0) + 1);
+    return m;
+  });
+  const qts = Array.from(new Set(token(query)));
+  const K1 = 1.5, B = 0.75;
+  const scored = [];
+  for (let i = 0; i < N; i++) {
+    let score = 0;
+    for (const q of qts) {
+      const f = tf[i].get(q);
+      if (!f) continue;
+      const n = df.get(q) || 0;
+      const idf = Math.log(1 + (N - n + 0.5) / (n + 0.5));
+      score += idf * (f * (K1 + 1)) / (f + K1 * (1 - B + B * docs[i].length / avgdl));
+    }
+    if (score > 0) scored.push([score, i]);
+  }
+  scored.sort((x, y) => y[0] - x[0]);
+  return scored.slice(0, k || 6).map(p => ({ path: chunks[p[1]].path, score: Math.round(p[0] * 100) / 100, snippet: chunks[p[1]].text.slice(0, 500) }));
+}
+async function hwSearchWorkspace(query, k) {
+  const files = await hwRagFiles();
+  const results = hwBm25Search(query, files, k);
+  return { files_indexed: files.length, query: query, results: results };
+}
+function openPermissions() {
+  const d = enhMakeDialog("dlgPerms", "Tool Approvals", false);
+  const body = d.querySelector(".dlg-body");
+  const names = (() => { const set = new Set(Object.keys(HW_WRITE_TOOLS)); try { for (const sc of toolSchemas()) set.add(sc.function.name); } catch (e) {} return Array.from(set).sort(); })();
+  function renderRules() {
+    let html = '<p class="muted" style="font-size:11.5px;margin:2px 0 8px">Approval mode: <b>' + escapeHtml(hwPerms.mode) + "</b> — writes " +
+      (hwPerms.mode === "read-only" ? "are blocked" : hwPerms.mode === "ask" ? "confirm first (codex on-request)" : "run automatically (codex full-auto)") +
+      ". Per-tool rules below override the mode (opencode pattern). Applies to chat and terminal agents alike.</p>";
+    for (const t of names) {
+      const cur = hwPerms.rules[t] || "";
+      html += '<div class="perm-row"><span class="tname">' + escapeHtml(t) + '</span><select data-tool="' + escapeHtml(t) + '" style="width:150px">' +
+        '<option value=""' + (cur === "" ? " selected" : "") + ">mode default</option>" +
+        '<option value="allow"' + (cur === "allow" ? " selected" : "") + ">Allow</option>" +
+        '<option value="ask"' + (cur === "ask" ? " selected" : "") + ">Ask</option>" +
+        '<option value="deny"' + (cur === "deny" ? " selected" : "") + ">Deny</option></select></div>";
+    }
+    body.innerHTML = html;
+    Array.prototype.forEach.call(body.querySelectorAll("select[data-tool]"), (sel) => sel.addEventListener("change", () => {
+      const t = sel.getAttribute("data-tool");
+      if (sel.value) hwPerms.rules[t] = sel.value; else delete hwPerms.rules[t];
+      hwSavePerms(hwPerms);
+      evLog("policy/change", t + " → " + (sel.value || "mode default"));
+    }));
+  }
+  renderRules();
+  d.showModal();
+}
+
+/* Boot wiring for the ported features */
+function hwBoot() {
+  const pauseB = $("btnPause");
+  if (pauseB) pauseB.addEventListener("click", pauseAgent);
+  const rB = $("btnResumeTurn"); if (rB) rB.addEventListener("click", resumeAgent);
+  const tB = $("btnRetryTurn"); if (tB) tB.addEventListener("click", retryTurn);
+  const eB = $("btnEventLog"); if (eB) eB.addEventListener("click", openEventLog);
+  const mO = $("btnMemOpen"); if (mO) mO.addEventListener("click", openMemory);
+  const mA = $("btnMemAdd");
+  if (mA) mA.addEventListener("click", () => { const t = prompt("New memory note:"); if (t && addMemNote(t)) toast("Memory note added"); });
+  const p1 = $("btnPerms"); if (p1) p1.addEventListener("click", openPermissions);
+  const p2 = $("btnPermsSide"); if (p2) p2.addEventListener("click", openPermissions);
+  const rR = $("btnResetRules");
+  if (rR) rR.addEventListener("click", () => { hwPerms.rules = {}; hwSavePerms(hwPerms); toast("Per-tool rules reset to mode defaults"); evLog("policy/change", "all rules cleared"); });
+  const am = $("apprModeSel");
+  if (am) {
+    am.value = hwPerms.mode;
+    am.addEventListener("change", () => { hwPerms.mode = am.value; hwSavePerms(hwPerms); toast("Approval mode: " + am.value); evLog("policy/change", "approval mode → " + am.value); });
+  }
+  window.addEventListener("pagehide", () => { if (running) { try { saveHistory(); persistLive("page reloaded"); } catch (e) {} } });
+  const live = loadLive();
+  if (live && live.sid === sessions.activeId) {
+    if (live.reason === "page reloaded") renderSysNote("Previous turn was interrupted by a page reload — press Resume in the composer to continue where it stopped.");
+    evLog("turn/pause", live.reason || "recovered from reload");
+  }
+  const sidebar = $("sidebar");
+  const bd = document.createElement("div");
+  bd.id = "sideBackdrop";
+  sidebar.parentNode.appendChild(bd);
+  const syncBack = () => {
+    const small = window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
+    const hidden = sidebar.classList.contains("hidden");
+    bd.classList.toggle("show", !!(small && !hidden));
+  };
+  bd.addEventListener("click", () => sidebar.classList.add("hidden"));
+  const mq = window.matchMedia("(max-width: 768px)");
+  const applyStart = () => { if (mq.matches) sidebar.classList.add("hidden"); };
+  applyStart();
+  if (mq.addEventListener) mq.addEventListener("change", applyStart);
+  else if (mq.addListener) mq.addListener(applyStart);
+  if (window.MutationObserver) new MutationObserver(syncBack).observe(sidebar, { attributes: true, attributeFilter: ["class"] });
+  syncBack();
+  refreshMemUi();
+  renderPlan();
+  refreshTurnBar();
+}
+
+function hwContextBlock() {
+  const parts = [];
+  try {
+    const notes = loadMem();
+    if (notes.length) parts.push("PERSISTENT MEMORY (notes the user asked you to remember across sessions — follow them):\n" + notes.slice(0, 20).map(n => "- " + n.text).join("\n"));
+  } catch (e) {}
+  try {
+    const plan = loadPlan();
+    if (plan.steps.length) {
+      parts.push("CURRENT TASK PLAN (keep it updated via the update_plan tool):\n" + plan.steps.map(st => "- [" + st.status + "] " + st.text).join("\n") + (plan.note ? "\nNote: " + plan.note : ""));
+    }
+  } catch (e) {}
+  return parts.join("\n\n");
+}
+
+/* Central tool gate + redaction wrapper (codex read-only sandbox → per-tool rule → mode default) */
+executeTool = async function (name, argsJson) {
+  const p = hwPermit(name);
+  hwLastConfirm = null;
+  if (p === "deny") {
+    evLog("tool/decision", name + " → deny (policy)");
+    hwConfirmAlways = false;
+    return JSON.stringify({ error: "Tool '" + name + "' is blocked by the current approval policy (mode " + hwPerms.mode + (hwPerms.rules[name] ? ", rule deny" : "") + "). Ask the user to adjust it in Approvals." });
+  }
+  if (p === "ask" && !HW_WRITE_TOOLS[name]) {
+    let short = "";
+    try { short = String(argsJson || "").slice(0, 140); } catch (e) {}
+    evLog("tool/decision", name + " → ask (rule)");
+    const ok = await confirmAction("Run tool: " + name + "?", '<p class="muted" style="font-size:11px;word-break:break-all">' + escapeHtml(short) + "</p>", "Run");
+    hwLastConfirm = ok;
+    if (!ok) return JSON.stringify({ result: "User DENIED the " + name + " tool call. Do not retry it without asking the user." });
+  }
+  hwConfirmAlways = (p === "ask");
+  try {
+    const out = await __hwET(name, argsJson);
+    hwConfirmAlways = false;
+    evLog("tool/result", name + " · " + (String(out).length > 90 ? String(out).slice(0, 90) + "…" : String(out)));
+    if (hwLastConfirm === "always") {
+      hwPerms.rules[name] = "allow";
+      hwSavePerms(hwPerms);
+      hwLastConfirm = null;
+      toast(name + " → always allowed (rule saved)");
+      evLog("tool/decision", name + " rule → allow (user, always)");
+    }
+    return redactSecrets(String(out));
+  } catch (e) {
+    hwConfirmAlways = false;
+    throw e;
+  }
+};
+
+
 bindCfg();
 renderSessions();
 renderHistory();
@@ -4156,8 +4932,9 @@ initTerminal();
 applyTheme(localStorage.getItem("glmagent.theme.v1") || "midnight");
 $("themeSelect").addEventListener("change", (e) => applyTheme(e.target.value));
 enhInit();
+hwBoot();
 if (!messages.length) {
-  renderSysNote("▲ Configure your provider + API key in the sidebar, optionally mount a folder, then send a task. The agent streams reasoning, calls tools locally, and loops until done.");
+  renderSysNote("Tip: configure your provider + API key in the sidebar, optionally mount a folder, then send a task. The agent streams reasoning, calls tools locally, and loops until done.");
 }
 </script>
 </body>
